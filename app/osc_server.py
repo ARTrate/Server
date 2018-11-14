@@ -3,17 +3,19 @@ from pythonosc import dispatcher, osc_server
 from queue import Queue
 from sound_effect_engine import *
 
-effectEngines = [SoundEffectEngine(Queue())]
+effectEngines = []
+effectEngineQueues = {}
 started = False
 
 def dispatchEffectEngines(addr, args):
     global started
     global effectEngines
+    global effectEngineQueues
     print("+++++++ DISPATCH OSC DATA +++++++ ")
     for e in effectEngines:
         if not started:
             e.start()
-        e.get_queue().put(args)
+        effectEngineQueues.get(e.get_name()).put(args)
     started = True
 
 
@@ -25,6 +27,9 @@ if __name__ == "__main__":
   
     dispatcher = dispatcher.Dispatcher()
     dispatcher.map("/bpm", dispatchEffectEngines)
+
+    effectEngineQueues["SoundEffectEngine"] = Queue()
+    effectEngines.append(SoundEffectEngine(effectEngineQueues.get("SoundEffectEngine")))
 
     server = osc_server.ThreadingOSCUDPServer((args.ip, args.port), dispatcher)
     print("Serving on {}".format(server.server_address))

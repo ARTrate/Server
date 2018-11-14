@@ -17,3 +17,6 @@ class EffectEngine(threading.Thread):
 
     def get_queue(self):
         return self._queue
+
+    def get_name(self):
+        return self._name
