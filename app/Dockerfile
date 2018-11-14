@@ -10,4 +10,3 @@ WORKDIR /usr/local/app
 ADD . ./
 
 CMD ["python", "-u", "./osc_server.py"]
-#CMD ["python", "-u", "./test.py"]
