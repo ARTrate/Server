@@ -1,9 +1,21 @@
 import argparse
 from pythonosc import dispatcher, osc_server
+from queue import Queue
+from sound_effect_engine import *
 
+effectEngines = [SoundEffectEngine(Queue())]
+started = False
 
 def dispatchEffectEngines(addr, args):
-  print("+++++++ RECEIVED OSC DATA +++++++ ")
+    global started
+    global effectEngines
+    print("+++++++ DISPATCH OSC DATA +++++++ ")
+    for e in effectEngines:
+        if not started:
+            e.start()
+        e.get_queue().put(args)
+    started = True
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
