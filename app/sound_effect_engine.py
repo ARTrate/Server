@@ -11,7 +11,7 @@ class SoundEffectEngine(EffectEngine):
         self._name = "SoundEffectEngine"
         self._chunk = 1024
         self._player = pyaudio.PyAudio()
-        self._wav_file_path = "media/351.wav"
+        self._wav_file_path = "media/351.wav"  # @TODO: make configurable
         self._wav_file = None
         self._stream = None
 
@@ -26,6 +26,7 @@ class SoundEffectEngine(EffectEngine):
 
     def effect_loop(self):
 
+        # @TODO remove if not necessary - not used yet
         while not self._stop_event.is_set():
 
             data = self._wav_file.readframes(self._chunk)
@@ -43,7 +44,7 @@ class SoundEffectEngine(EffectEngine):
                 pass
 
             print("sleep..")
-            time.sleep(60/self._currentBpm)
+            time.sleep(60/self._currentBpm)     # adjust pause between heartbeats
             print("wakeup!")
 
         print("Stopping " + self.name)

@@ -7,13 +7,14 @@ effectEngines = []
 effectEngineQueues = {}
 started = False
 
+
 def dispatchEffectEngines(addr, args):
     global started
     global effectEngines
     global effectEngineQueues
     print("+++++++ DISPATCH OSC DATA +++++++ ")
     for e in effectEngines:
-        if not started:
+        if not started:                         # start threads when receiving data
             e.start()
         effectEngineQueues.get(e.get_name()).put(args)
     started = True
@@ -28,6 +29,7 @@ if __name__ == "__main__":
     dispatcher = dispatcher.Dispatcher()
     dispatcher.map("/bpm", dispatchEffectEngines)
 
+    # @TODO: go back to single list of engine objects if this doesn't fix bug
     effectEngineQueues["SoundEffectEngine"] = Queue()
     effectEngines.append(SoundEffectEngine(effectEngineQueues.get("SoundEffectEngine")))
 
