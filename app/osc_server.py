@@ -8,7 +8,7 @@ effectEngineQueues = {}
 started = False
 
 
-def dispatchEffectEngines(addr, args):
+def dispatch_effect_engines(addr, args):
     global started
     global effectEngines
     global effectEngineQueues
@@ -27,7 +27,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
   
     dispatcher = dispatcher.Dispatcher()
-    dispatcher.map("/bpm", dispatchEffectEngines)
+    dispatcher.map("/bpm", dispatch_effect_engines)
 
     # @TODO: go back to single list of engine objects if this doesn't fix bug
     effectEngineQueues["SoundEffectEngine"] = Queue()
