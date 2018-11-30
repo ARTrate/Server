@@ -5,6 +5,7 @@ import wave
 import time
 import queue
 
+
 class SoundEffectEngine(EffectEngine):
 
     def __init__(self, queue):
@@ -25,27 +26,36 @@ class SoundEffectEngine(EffectEngine):
                                          output=True)
         self.effect_loop()
 
+    def idle(self):
+        print(self._name + " idling..")
+        self._stream.stop_stream()
+        bpm = self._queue.get()
+        self._currentBpm = bpm if bpm > 0 else self._currentBpm
+        print("Received bpm from dispatcher: " + str(self._currentBpm))
+        self._stream.start_stream()
+        self._heartbeat = HEARTBEAT_TIMEOUT
+
     def effect_loop(self):
 
-        # @TODO remove if not necessary - not used yet
-        while not self._stop_event.is_set():
+        while True:
 
             data = self._wav_file.readframes(self._chunk)
             while data != b'':
                 self._stream.write(data)
                 data = self._wav_file.readframes(self._chunk)
 
-            print("Rewind")
             self._wav_file.rewind()
+            print("Rewind")
             try:
                 bpm = self._queue.get_nowait()
+                self._heartbeat = HEARTBEAT_TIMEOUT
                 self._currentBpm = bpm if bpm > 0 else self._currentBpm
                 print("Received bpm from dispatcher: " + str(self._currentBpm))
             except queue.Empty:
-                pass
+                self._heartbeat = self._heartbeat - 1
 
-            print("sleep..")
-            time.sleep(60/self._currentBpm)     # adjust pause between heartbeats
-            print("wakeup!")
+            if self._heartbeat is 0:
+                self.idle()
+            else:
+                time.sleep(60/self._currentBpm)     # adjust pause between heartbeats
 
-        print("Stopping " + self.name)
