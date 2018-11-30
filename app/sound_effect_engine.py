@@ -1,4 +1,5 @@
-from effect_engine import *
+from effect_engine import EffectEngine
+from config import *
 import pyaudio
 import wave
 import time
@@ -11,7 +12,7 @@ class SoundEffectEngine(EffectEngine):
         self._name = "SoundEffectEngine"
         self._chunk = 1024
         self._player = pyaudio.PyAudio()
-        self._wav_file_path = "media/351.wav"  # @TODO: make configurable
+        self._wav_file_path = SOUNDFILE_PATH
         self._wav_file = None
         self._stream = None
 
