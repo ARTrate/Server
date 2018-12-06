@@ -57,5 +57,8 @@ class SoundEffectEngine(EffectEngine):
             if self._heartbeat is 0:
                 self.idle()
             else:
-                time.sleep(60/self._currentBpm)     # adjust pause between heartbeats
+                if self._currentBpm is 0:
+                    time.sleep(60)
+                else:
+                    time.sleep(60/self._currentBpm)     # adjust pause between heartbeats
 
