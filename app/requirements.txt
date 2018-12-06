@@ -1,3 +1,4 @@
+wheel
 python-osc
 argparse
 pyaudio
