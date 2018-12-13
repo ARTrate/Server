@@ -1,0 +1,4 @@
+{
+    "python.pythonPath": "app/bin/python",
+    "python.linting.pylintEnabled": false
+}

@@ -1,5 +1,5 @@
 from effect_engine import EffectEngine
-from config import *
+import config
 import pyaudio
 import wave
 import time
@@ -13,17 +13,19 @@ class SoundEffectEngine(EffectEngine):
         self._name = "SoundEffectEngine"
         self._chunk = 1024
         self._player = pyaudio.PyAudio()
-        self._wav_file_path = SOUNDFILE_PATH
+        self._wav_file_path = config.SOUNDFILE_PATH
         self._wav_file = None
         self._stream = None
 
     def run(self):
         print("Starting " + self._name)
         self._wav_file = wave.open(self._wav_file_path, "rb")
-        self._stream = self._player.open(format=self._player.get_format_from_width(self._wav_file.getsampwidth()),
-                                         channels=self._wav_file.getnchannels(),
-                                         rate=self._wav_file.getframerate(),
-                                         output=True)
+        self._stream = self._player.open(
+            format=self._player.get_format_from_width(
+                self._wav_file.getsampwidth()),
+            channels=self._wav_file.getnchannels(),
+            rate=self._wav_file.getframerate(),
+            output=True)
         self.effect_loop()
 
     def idle(self):
@@ -33,7 +35,7 @@ class SoundEffectEngine(EffectEngine):
         self._currentBpm = bpm if bpm > 0 else self._currentBpm
         print("Received bpm from dispatcher: " + str(self._currentBpm))
         self._stream.start_stream()
-        self._heartbeat = HEARTBEAT_TIMEOUT
+        self._heartbeat = config.HEARTBEAT_TIMEOUT
 
     def effect_loop(self):
 
@@ -48,7 +50,7 @@ class SoundEffectEngine(EffectEngine):
             print("Rewind")
             try:
                 bpm = self._queue.get_nowait()
-                self._heartbeat = HEARTBEAT_TIMEOUT
+                self._heartbeat = config.HEARTBEAT_TIMEOUT
                 self._currentBpm = bpm if bpm > 0 else self._currentBpm
                 print("Received bpm from dispatcher: " + str(self._currentBpm))
             except queue.Empty:
@@ -60,5 +62,5 @@ class SoundEffectEngine(EffectEngine):
                 if self._currentBpm is 0:
                     time.sleep(1)
                 else:
-                    time.sleep(60/self._currentBpm)     # adjust pause between heartbeats
-
+                    # adjust pause between heartbeats
+                    time.sleep(60/self._currentBpm)

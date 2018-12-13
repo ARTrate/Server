@@ -1,5 +1,5 @@
 import threading
-from config import *
+import config
 
 
 class EffectEngine(threading.Thread):
@@ -9,7 +9,7 @@ class EffectEngine(threading.Thread):
         self._stop_event = threading.Event()
         self._queue = queue
         self._currentBpm = 0
-        self._heartbeat = HEARTBEAT_TIMEOUT
+        self._heartbeat = config.HEARTBEAT_TIMEOUT
         self._name = ""
 
     def set_bpm(self, bpm):
