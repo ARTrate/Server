@@ -4,6 +4,7 @@ import pyaudio
 import wave
 import time
 import queue
+import csv
 
 
 class SoundEffectEngine(EffectEngine):
@@ -16,6 +17,12 @@ class SoundEffectEngine(EffectEngine):
         self._wav_file_path = config.SOUNDFILE_PATH
         self._wav_file = None
         self._stream = None
+        self._dataFile = open("history.csv", "w")
+        self._dataWriter = csv.writer(
+            self._dataFile,
+            delimiter=",",
+            quotechar='"',
+            quoting=csv.QUOTE_MINIMAL)
 
     def run(self):
         print("Starting " + self._name)
@@ -39,28 +46,38 @@ class SoundEffectEngine(EffectEngine):
 
     def effect_loop(self):
 
-        while True:
+        try:
+            while True:
 
-            data = self._wav_file.readframes(self._chunk)
-            while data != b'':
-                self._stream.write(data)
                 data = self._wav_file.readframes(self._chunk)
+                while data != b'':
+                    self._stream.write(data)
+                    data = self._wav_file.readframes(self._chunk)
 
-            self._wav_file.rewind()
-            print("Rewind")
-            try:
-                bpm = self._queue.get_nowait()
-                self._heartbeat = config.HEARTBEAT_TIMEOUT
-                self._currentBpm = bpm if bpm > 0 else self._currentBpm
-                print("Received bpm from dispatcher: " + str(self._currentBpm))
-            except queue.Empty:
-                self._heartbeat = self._heartbeat - 1
+                self._wav_file.rewind()
+                print("Rewind")
+                try:
+                    bpm = self._queue.get_nowait()
+                    self._heartbeat = config.HEARTBEAT_TIMEOUT
+                    self._currentBpm = bpm if bpm > 0 else self._currentBpm
+                    print("Received bpm from dispatcher: " + str(
+                            self._currentBpm))
+                    # save data history
+                    self._bpmHistory.append(self._currentBpm)
+                    # write into csv
 
-            if self._heartbeat is 0:
-                self.idle()
-            else:
-                if self._currentBpm is 0:
-                    time.sleep(1)
+                    self._dataWriter.writerow([self._currentBpm])
+                    self._dataFile.flush()
+                except queue.Empty:
+                    self._heartbeat = self._heartbeat - 1
+
+                if self._heartbeat is 0:
+                    self.idle()
                 else:
-                    # adjust pause between heartbeats
-                    time.sleep(60/self._currentBpm)
+                    if self._currentBpm is 0:
+                        time.sleep(1)
+                    else:
+                        # adjust pause between heartbeats
+                        time.sleep(60/self._currentBpm)
+        except KeyboardInterrupt:
+            print("Got interrupt, crunching Data...")
