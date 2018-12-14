@@ -63,11 +63,12 @@ class SoundEffectEngine(EffectEngine):
                     print("Received bpm from dispatcher: " + str(
                             self._currentBpm))
                     # save data history
-                    self._bpmHistory.append(self._currentBpm)
-                    # write into csv
+                    if self._currentBpm != 0:
+                        self._bpmHistory.append(self._currentBpm)
+                        # write into csv
 
-                    self._dataWriter.writerow([self._currentBpm])
-                    self._dataFile.flush()
+                        self._dataWriter.writerow([self._currentBpm])
+                        self._dataFile.flush()
                 except queue.Empty:
                     self._heartbeat = self._heartbeat - 1
 
