@@ -5,19 +5,20 @@ import sound_effect_engine
 
 effectEngines = []
 effectEngineQueues = {}
-started = False
+started_effect_engines = False
+started_RR_postprocessing = False
 
 
 def dispatch_effect_engines(addr, args):
-    global started
+    global started_effect_engines
     global effectEngines
     global effectEngineQueues
     print("+++++++ DISPATCH OSC DATA +++++++ ")
     for e in effectEngines:
-        if not started:         # start threads when receiving data
+        if not started_effect_engines:  # start threads when receiving data
             e.start()
         effectEngineQueues.get(e.get_name()).put(args)
-    started = True
+    started_effect_engines = True
 
 
 if __name__ == "__main__":
