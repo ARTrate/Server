@@ -2,3 +2,5 @@ wheel
 python-osc
 argparse
 pyaudio
+numpy
+scipy

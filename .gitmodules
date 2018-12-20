@@ -1,0 +1,3 @@
+[submodule "app/acc_sensor_rr-python"]
+	path = app/acc_sensor_rr-python
+	url = https://github.com/MadMax93/acc_sensor_rr-python.git
