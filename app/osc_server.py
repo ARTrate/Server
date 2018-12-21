@@ -41,7 +41,7 @@ def postProcessRR(addr, args):
     global started_RR_postprocessing
     global cached_ACC_X, cached_ACC_Y, cached_ACC_Z
     print("+++++++ POSTPROCESS RESPIRATION DATA +++++++ ")
-    data_array = str.split(",")
+    data_array = args.split(",")
     cached_ACC_X.append(int(data_array[0]))
     cached_ACC_Y.append(int(data_array[1]))
     cached_ACC_Z.append(int(data_array[2]))
