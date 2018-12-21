@@ -1,0 +1,68 @@
+<?xml version="1.0" standalone="no" ?>
+<!DOCTYPE project PUBLIC "-//audacityproject-1.3.0//DTD//EN" "http://audacity.sourceforge.net/xml/audacityproject-1.3.0.dtd" >
+<project xmlns="http://audacity.sourceforge.net/xml/" projname="half_351_more_dramatic2_data" version="1.3.0" audacityversion="2.2.1" sel0="0.0000000000" sel1="0.8620408163" vpos="0" h="0.0000000000" zoom="191.2000000000" rate="44100.0" snapto="off" selectionformat="hh:mm:ss + Millisekunden" frequencyformat="Hz" bandwidthformat="Oktaven">
+	<tags>
+		<tag name="Software" value="Sonic Foundry Sound Forge 5.0"/>
+		<tag name="YEAR" value="2006-08-29"/>
+	</tags>
+	<wavetrack name="351" channel="0" linked="1" mute="0" solo="0" height="150" minimized="0" isSelected="1" rate="44100" gain="1.0" pan="0.0" colorindex="0">
+		<waveclip offset="0.00000000" colorindex="0">
+			<sequence maxsamples="262144" sampleformat="262159" numsamples="38016">
+				<waveblock start="0">
+					<simpleblockfile filename="e0000280.au" len="38016" min="-0.338908" max="0.406196" rms="0.071412"/>
+				</waveblock>
+			</sequence>
+			<envelope numpoints="0"/>
+		</waveclip>
+	</wavetrack>
+	<wavetrack name="351" channel="1" linked="0" mute="0" solo="0" height="150" minimized="0" isSelected="1" rate="44100" gain="1.0" pan="0.0" colorindex="0">
+		<waveclip offset="0.00000000" colorindex="0">
+			<sequence maxsamples="262144" sampleformat="262159" numsamples="38016">
+				<waveblock start="0">
+					<simpleblockfile filename="e00000b1.au" len="38016" min="-0.294925" max="0.355326" rms="0.062222"/>
+				</waveblock>
+			</sequence>
+			<envelope numpoints="0"/>
+		</waveclip>
+	</wavetrack>
+	<wavetrack name="Articifial_heartbeat" channel="0" linked="1" mute="1" solo="0" height="150" minimized="0" isSelected="0" rate="44100" gain="1.0" pan="0.0" colorindex="0">
+		<waveclip offset="0.00000000" colorindex="0">
+			<sequence maxsamples="262144" sampleformat="262159" numsamples="44138">
+				<waveblock start="0">
+					<simpleblockfile filename="e0000b96.au" len="44138" min="-0.986298" max="0.861237" rms="0.238123"/>
+				</waveblock>
+			</sequence>
+			<envelope numpoints="0"/>
+		</waveclip>
+	</wavetrack>
+	<wavetrack name="Articifial_heartbeat" channel="1" linked="0" mute="1" solo="0" height="150" minimized="0" isSelected="0" rate="44100" gain="1.0" pan="0.0" colorindex="0">
+		<waveclip offset="0.00000000" colorindex="0">
+			<sequence maxsamples="262144" sampleformat="262159" numsamples="44138">
+				<waveblock start="0">
+					<simpleblockfile filename="e0000e86.au" len="44138" min="-0.973755" max="0.849915" rms="0.241112"/>
+				</waveblock>
+			</sequence>
+			<envelope numpoints="0"/>
+		</waveclip>
+	</wavetrack>
+	<wavetrack name="05 Dramatic heartbeat #2" channel="0" linked="1" mute="0" solo="0" height="150" minimized="0" isSelected="0" rate="96000" gain="1.0" pan="0.0" colorindex="0">
+		<waveclip offset="0.00000000" colorindex="0">
+			<sequence maxsamples="262144" sampleformat="262159" numsamples="118973">
+				<waveblock start="0">
+					<simpleblockfile filename="e0000517.au" len="118973" min="-0.764751" max="0.735083" rms="0.213413"/>
+				</waveblock>
+			</sequence>
+			<envelope numpoints="0"/>
+		</waveclip>
+	</wavetrack>
+	<wavetrack name="05 Dramatic heartbeat #2" channel="1" linked="0" mute="0" solo="0" height="150" minimized="0" isSelected="0" rate="96000" gain="1.0" pan="0.0" colorindex="0">
+		<waveclip offset="0.00000000" colorindex="0">
+			<sequence maxsamples="262144" sampleformat="262159" numsamples="118973">
+				<waveblock start="0">
+					<simpleblockfile filename="e0000269.au" len="118973" min="-0.79803" max="0.678775" rms="0.19307"/>
+				</waveblock>
+			</sequence>
+			<envelope numpoints="0"/>
+		</waveclip>
+	</wavetrack>
+</project>
