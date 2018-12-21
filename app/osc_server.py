@@ -42,9 +42,9 @@ def postProcessRR(low_cut, high_cut, sample_rate, addr, args: str):
     global cached_ACC_X, cached_ACC_Y, cached_ACC_Z
     print("+++++++ POSTPROCESS RESPIRATION DATA +++++++ ")
     data_array = str.split(",")
-    cached_ACC_X.append(data_array[0])
-    cached_ACC_Y.append(data_array[1])
-    cached_ACC_Z.append(data_array[2])
+    cached_ACC_X.append(int(data_array[0]))
+    cached_ACC_Y.append(int(data_array[1]))
+    cached_ACC_Z.append(int(data_array[2]))
     # if there is enough data, analyze like in Maximilian Kurscheidts` Main
     if len(cached_ACC_X):
         raw_X = numpy.array(cached_ACC_X)
