@@ -4,3 +4,4 @@ argparse
 pyaudio
 numpy
 scipy
+natsort
