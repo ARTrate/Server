@@ -3,7 +3,7 @@ from pythonosc import dispatcher, osc_server
 from queue import Queue
 import numpy
 import sound_effect_engine
-from Signalprocessing import Signalprocessing as sp
+from acc_sensor_rr.Code.Signalprocessing import Signalprocessing as sp
 
 effectEngines = []
 effectEngineQueues = {}
