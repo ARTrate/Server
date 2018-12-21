@@ -86,6 +86,7 @@ class SoundEffectEngine(EffectEngine):
             rate=self._cur_wav_file.getframerate(),
             output=True)
 
+
     def effect_loop(self):
 
         self.poll_bpm()
@@ -103,6 +104,7 @@ class SoundEffectEngine(EffectEngine):
                 if changed:
                     self._cur_wav_file.close()
                     self._stream.stop_stream()
+                    self._player.close(self._stream)
                     self.choose_wav_file()
                 else:
                     self._cur_wav_file.rewind()
