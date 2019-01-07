@@ -41,9 +41,14 @@ class SoundEffectEngine(EffectEngine):
         self.read_wav_files()
         self.effect_loop()
 
+    def shutdownAudio(self):
+        self._cur_wav_file.close()
+        self._stream.stop_stream()
+        self._player.close(self._stream)
+
     def idle(self):
         print(self._name + " idling..")
-        self._stream.stop_stream()
+	 self.shutdownAudio()
         bpm = self._queue.get()
         self._currentBpm = bpm if bpm > 0 else self._currentBpm
         print("Received bpm from dispatcher: " + str(self._currentBpm))
@@ -102,9 +107,7 @@ class SoundEffectEngine(EffectEngine):
 
                 changed = self.poll_bpm()
                 if changed:
-                    self._cur_wav_file.close()
-                    self._stream.stop_stream()
-                    self._player.close(self._stream)
+                    self.shutdownAudio()
                     self.choose_wav_file()
                 else:
                     self._cur_wav_file.rewind()
