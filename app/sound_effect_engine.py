@@ -48,12 +48,16 @@ class SoundEffectEngine(EffectEngine):
 
     def idle(self):
         print(self._name + " idling..")
-	 self.shutdownAudio()
-        bpm = self._queue.get()
-        self._currentBpm = bpm if bpm > 0 else self._currentBpm
-        print("Received bpm from dispatcher: " + str(self._currentBpm))
-        self._stream.start_stream()
-        self._heartbeat = config.HEARTBEAT_TIMEOUT
+        self.shutdownAudio()
+        while not self._stop_event.is_set():
+            try:
+                bpm = self._queue.get(timeout=2)
+                self._currentBpm = bpm if bpm > 0 else self._currentBpm
+                print("Received bpm from dispatcher: " + str(self._currentBpm))
+                self._stream.start_stream()
+                self._heartbeat = config.HEARTBEAT_TIMEOUT
+            except queue.Empty:
+                pass
 
     def poll_bpm(self):
         try:
@@ -91,7 +95,6 @@ class SoundEffectEngine(EffectEngine):
             rate=self._cur_wav_file.getframerate(),
             output=True)
 
-
     def effect_loop(self):
 
         self.poll_bpm()
@@ -100,20 +103,23 @@ class SoundEffectEngine(EffectEngine):
         try:
             while True:
 
+                if self._stop_event.is_set():
+                    self.shutdownAudio()
+                    return
+
                 data = self._cur_wav_file.readframes(self._chunk)
                 while data != b'':
                     self._stream.write(data)
                     data = self._cur_wav_file.readframes(self._chunk)
 
                 changed = self.poll_bpm()
-                if changed:
+                if self._heartbeat is 0:
+                    self.idle()
+                elif changed:
                     self.shutdownAudio()
                     self.choose_wav_file()
                 else:
                     self._cur_wav_file.rewind()
-
-                if self._heartbeat is 0:
-                    self.idle()
 
                 time.sleep(0.1)
         except KeyboardInterrupt:

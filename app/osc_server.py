@@ -4,6 +4,7 @@ from queue import Queue
 import numpy
 import sound_effect_engine
 from acc_sensor_rr.Code.Signalprocessing import Signalprocessing as sp
+import sys
 
 effectEngines = []
 effectEngineQueues = {}
@@ -101,4 +102,9 @@ if __name__ == "__main__":
 
     server = osc_server.ThreadingOSCUDPServer((args.ip, args.port), dispatcher)
     print("Serving on {}".format(server.server_address))
-    server.serve_forever()
+    try:
+        server.serve_forever()
+    except (KeyboardInterrupt, SystemExit):
+        for engine in effectEngines:
+            engine.stop()
+            sys.exit()
