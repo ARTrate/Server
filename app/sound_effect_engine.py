@@ -8,7 +8,7 @@ import csv
 from os import listdir
 from os.path import isfile, join
 import math
-from natsort import natsorted, ns
+from natsort import natsorted
 
 
 class SoundEffectEngine(EffectEngine):
@@ -31,24 +31,41 @@ class SoundEffectEngine(EffectEngine):
         self._currentBpm = 0
         self._heartbeat = config.HEARTBEAT_TIMEOUT
 
+        if config.BPM_RANGE_LOW >= config.BPM_RANGE_HIGH:
+            raise ValueError("BPM Ranges are not configured correctly in config")
+
     def read_wav_files(self):
         self._wav_files = [join(self._wav_dir, f) for f in listdir(self._wav_dir) if isfile(join(self._wav_dir, f))]
         self._wav_files = natsorted(self._wav_files, key=lambda y: y.lower())
-        print(self._wav_files)
+        if len(self._wav_files) < 1:
+            raise FileNotFoundError("No wav files found in given directory.")
 
     def run(self):
         print("Starting " + self._name)
         self.read_wav_files()
         self.effect_loop()
 
+    def shutdown_audio(self):
+        self._cur_wav_file.close()
+        self._stream.stop_stream()
+        try:
+            self._player.close(self._stream)
+        except ValueError:
+            pass
+
     def idle(self):
         print(self._name + " idling..")
-        self._stream.stop_stream()
-        bpm = self._queue.get()
-        self._currentBpm = bpm if bpm > 0 else self._currentBpm
-        print("Received bpm from dispatcher: " + str(self._currentBpm))
-        self._stream.start_stream()
-        self._heartbeat = config.HEARTBEAT_TIMEOUT
+        self.shutdown_audio()
+        while not self._stop_event.is_set():
+            try:
+                bpm = self._queue.get(timeout=2)
+                self._currentBpm = bpm if bpm > 0 else self._currentBpm
+                print("Received bpm from dispatcher: " + str(self._currentBpm))
+                self.choose_wav_file()
+                self._heartbeat = config.HEARTBEAT_TIMEOUT
+                break
+            except queue.Empty:
+                pass
 
     def poll_bpm(self):
         try:
@@ -76,7 +93,7 @@ class SoundEffectEngine(EffectEngine):
         limited_bpm = config.BPM_RANGE_LOW if self._currentBpm < config.BPM_RANGE_LOW else \
             config.BPM_RANGE_HIGH if self._currentBpm > config.BPM_RANGE_HIGH else self._currentBpm
         total_range = config.BPM_RANGE_HIGH - config.BPM_RANGE_LOW
-        index = math.floor((limited_bpm - config.BPM_RANGE_LOW)/math.floor(total_range/len(self._wav_files)))
+        index = math.floor((limited_bpm - config.BPM_RANGE_LOW)/math.ceil(total_range/len(self._wav_files)))
         print(index)
         self._cur_wav_file = wave.open(self._wav_files[index], "rb")
         self._stream = self._player.open(
@@ -86,7 +103,6 @@ class SoundEffectEngine(EffectEngine):
             rate=self._cur_wav_file.getframerate(),
             output=True)
 
-
     def effect_loop(self):
 
         self.poll_bpm()
@@ -95,22 +111,23 @@ class SoundEffectEngine(EffectEngine):
         try:
             while True:
 
+                if self._stop_event.is_set():
+                    self.shutdown_audio()
+                    return
+
                 data = self._cur_wav_file.readframes(self._chunk)
                 while data != b'':
                     self._stream.write(data)
                     data = self._cur_wav_file.readframes(self._chunk)
 
                 changed = self.poll_bpm()
-                if changed:
-                    self._cur_wav_file.close()
-                    self._stream.stop_stream()
-                    self._player.close(self._stream)
+                if self._heartbeat is 0:
+                    self.idle()
+                elif changed:
+                    self.shutdown_audio()
                     self.choose_wav_file()
                 else:
                     self._cur_wav_file.rewind()
-
-                if self._heartbeat is 0:
-                    self.idle()
 
                 time.sleep(0.1)
         except KeyboardInterrupt:
