@@ -31,10 +31,14 @@ class SoundEffectEngine(EffectEngine):
         self._currentBpm = 0
         self._heartbeat = config.HEARTBEAT_TIMEOUT
 
+        if config.BPM_RANGE_LOW >= config.BPM_RANGE_HIGH:
+            raise ValueError("BPM Ranges are not configured correctly in config")
+
     def read_wav_files(self):
         self._wav_files = [join(self._wav_dir, f) for f in listdir(self._wav_dir) if isfile(join(self._wav_dir, f))]
         self._wav_files = natsorted(self._wav_files, key=lambda y: y.lower())
-        print(self._wav_files)
+        if len(self._wav_files) < 1:
+            raise FileNotFoundError("No wav files found in given directory.")
 
     def run(self):
         print("Starting " + self._name)
@@ -62,7 +66,6 @@ class SoundEffectEngine(EffectEngine):
                 break
             except queue.Empty:
                 pass
-
 
     def poll_bpm(self):
         try:
