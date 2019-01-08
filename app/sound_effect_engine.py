@@ -8,7 +8,7 @@ import csv
 from os import listdir
 from os.path import isfile, join
 import math
-from natsort import natsorted, ns
+from natsort import natsorted
 
 
 class SoundEffectEngine(EffectEngine):
@@ -41,23 +41,28 @@ class SoundEffectEngine(EffectEngine):
         self.read_wav_files()
         self.effect_loop()
 
-    def shutdownAudio(self):
+    def shutdown_audio(self):
         self._cur_wav_file.close()
         self._stream.stop_stream()
-        self._player.close(self._stream)
+        try:
+            self._player.close(self._stream)
+        except ValueError:
+            pass
 
     def idle(self):
         print(self._name + " idling..")
-        self.shutdownAudio()
+        self.shutdown_audio()
         while not self._stop_event.is_set():
             try:
                 bpm = self._queue.get(timeout=2)
                 self._currentBpm = bpm if bpm > 0 else self._currentBpm
                 print("Received bpm from dispatcher: " + str(self._currentBpm))
-                self._stream.start_stream()
+                self.choose_wav_file()
                 self._heartbeat = config.HEARTBEAT_TIMEOUT
+                break
             except queue.Empty:
                 pass
+
 
     def poll_bpm(self):
         try:
@@ -85,7 +90,7 @@ class SoundEffectEngine(EffectEngine):
         limited_bpm = config.BPM_RANGE_LOW if self._currentBpm < config.BPM_RANGE_LOW else \
             config.BPM_RANGE_HIGH if self._currentBpm > config.BPM_RANGE_HIGH else self._currentBpm
         total_range = config.BPM_RANGE_HIGH - config.BPM_RANGE_LOW
-        index = math.floor((limited_bpm - config.BPM_RANGE_LOW)/math.floor(total_range/len(self._wav_files)))
+        index = math.floor((limited_bpm - config.BPM_RANGE_LOW)/math.ceil(total_range/len(self._wav_files)))
         print(index)
         self._cur_wav_file = wave.open(self._wav_files[index], "rb")
         self._stream = self._player.open(
@@ -104,7 +109,7 @@ class SoundEffectEngine(EffectEngine):
             while True:
 
                 if self._stop_event.is_set():
-                    self.shutdownAudio()
+                    self.shutdown_audio()
                     return
 
                 data = self._cur_wav_file.readframes(self._chunk)
@@ -116,7 +121,7 @@ class SoundEffectEngine(EffectEngine):
                 if self._heartbeat is 0:
                     self.idle()
                 elif changed:
-                    self.shutdownAudio()
+                    self.shutdown_audio()
                     self.choose_wav_file()
                 else:
                     self._cur_wav_file.rewind()
