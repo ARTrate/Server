@@ -3,7 +3,7 @@ from pythonosc import dispatcher, osc_server
 from queue import Queue
 import numpy
 import sound_effect_engine
-from Signalprocessing import Signalprocessing as sp
+from acc_sensor_rr.Code.Signalprocessing import Signalprocessing as sp
 
 effectEngines = []
 effectEngineQueues = {}
@@ -26,7 +26,7 @@ def dispatch_effect_engines(addr, args):
     started_effect_engines = True
 
 
-def postProcessRR(low_cut, high_cut, sample_rate, addr, args: str):
+def postProcessRR(addr, args):
     """
     Postprocess the raw acceleration data from the Sensor to extract the
     actual respiration rate. This done with the methods provided by Maximilian
@@ -41,12 +41,15 @@ def postProcessRR(low_cut, high_cut, sample_rate, addr, args: str):
     global started_RR_postprocessing
     global cached_ACC_X, cached_ACC_Y, cached_ACC_Z
     print("+++++++ POSTPROCESS RESPIRATION DATA +++++++ ")
-    data_array = str.split(",")
-    cached_ACC_X.append(data_array[0])
-    cached_ACC_Y.append(data_array[1])
-    cached_ACC_Z.append(data_array[2])
+    data_array = args.split(",")
+    cached_ACC_X.append(int(data_array[0]))
+    cached_ACC_Y.append(int(data_array[1]))
+    cached_ACC_Z.append(int(data_array[2]))
     # if there is enough data, analyze like in Maximilian Kurscheidts` Main
     if len(cached_ACC_X):
+        low_cut = 0.2
+        high_cut = 0.45
+        sample_rate = 50
         raw_X = numpy.array(cached_ACC_X)
         raw_Y = numpy.array(cached_ACC_Y)
         raw_Z = numpy.array(cached_ACC_Z)
@@ -74,6 +77,10 @@ def postProcessRR(low_cut, high_cut, sample_rate, addr, args: str):
         peak_tupel = sp.find_peak_and_frequency(max_ps, frq_max)
         rr = sp.calculate_rr_from_power_spectrum(peak_tupel)
         print(rr)
+        # clean cache
+        cached_ACC_X = []
+        cached_ACC_Y = []
+        cached_ACC_Z = []
 
 
 if __name__ == "__main__":
@@ -85,7 +92,7 @@ if __name__ == "__main__":
 
     dispatcher = dispatcher.Dispatcher()
     dispatcher.map("/bpm", dispatch_effect_engines)
-    dispatcher.map("/RR", postProcessRR(0.2, 0.45, 50))
+    dispatcher.map("/RR", postProcessRR)
 
     # @TODO: go back to single list of engine objects if this doesn't fix bug
     effectEngineQueues["SoundEffectEngine"] = Queue()
