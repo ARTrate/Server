@@ -2,28 +2,25 @@ import argparse
 from pythonosc import dispatcher, osc_server
 from queue import Queue
 import numpy
-import sound_effect_engine
+from sound_effect_engine import SoundEffectEngine
 from acc_sensor_rr.Code.Signalprocessing import Signalprocessing as sp
 import sys
 
-effectEngines = []
-effectEngineQueues = {}
 started_effect_engines = False
 started_RR_postprocessing = False
 cached_ACC_X = []
 cached_ACC_Y = []
 cached_ACC_Z = []
-
+effectEngines = [SoundEffectEngine(Queue())]
 
 def dispatch_effect_engines(addr, args):
     global started_effect_engines
     global effectEngines
-    global effectEngineQueues
     print("+++++++ DISPATCH OSC DATA +++++++ ")
     for e in effectEngines:
         if not started_effect_engines:  # start threads when receiving data
             e.start()
-        effectEngineQueues.get(e.get_name()).put(args)
+        e.get_queue().put(args)
     started_effect_engines = True
 
 
@@ -94,11 +91,6 @@ if __name__ == "__main__":
     dispatcher = dispatcher.Dispatcher()
     dispatcher.map("/bpm", dispatch_effect_engines)
     dispatcher.map("/RR", postProcessRR)
-
-    # @TODO: go back to single list of engine objects if this doesn't fix bug
-    effectEngineQueues["SoundEffectEngine"] = Queue()
-    effectEngines.append(sound_effect_engine.SoundEffectEngine(
-                        effectEngineQueues.get("SoundEffectEngine")))
 
     server = osc_server.ThreadingOSCUDPServer((args.ip, args.port), dispatcher)
     print("Serving on {}".format(server.server_address))
