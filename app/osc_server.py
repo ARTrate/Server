@@ -38,9 +38,6 @@ def postProcessRR(addr, args):
     actual respiration rate. This done with the methods provided by Maximilian
     Kurscheidt
 
-    :param low_cut: low cut for bandpass filter
-    :param high_cut: high cut for bandpass filter
-    :param sample_rate: number of samples that should be analyzed
     :param addr: the OSC addr string
     :param args: the OSC payload, our value string, eg 29185,38544,28561
     """
