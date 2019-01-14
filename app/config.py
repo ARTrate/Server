@@ -6,10 +6,9 @@ class SoundMode(Enum):
     DIFFERENCE = 2
 
 
-HEARTBEAT_TIMEOUT = 5
-SOUNDFILE_DIR = "media/"
-SOUND_MODE = SoundMode.AVERAGE
-AVG_WINDOW = 1
-# Total range should be dividable by number of wav files --> otherwise not all samples are used
-BPM_RANGE_LOW = 50
-BPM_RANGE_HIGH = 99
+HEARTBEAT_TIMEOUT = 5               # Nr of unsuccessfull polls on bpm queue before going into idle mode
+SOUNDFILE_DIR = "media/"            # Path to wav file directory
+SOUND_MODE = SoundMode.DIFFERENCE   # Mode of SoundEffectEngine
+AVG_WINDOW = 2                      # Nr of bpm values to be stored (for Difference mode, keep at least a window of 2!)
+BPM_RANGE_LOW = 50                  # BPM range (inclusive) to assign wav files to (everything lower/higher than given
+BPM_RANGE_HIGH = 99                 # range will be capped. Total range should be dividable by number of wav files.
