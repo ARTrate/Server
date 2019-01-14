@@ -9,6 +9,7 @@ from os import listdir
 from os.path import isfile, join
 import math
 from natsort import natsorted
+from ring_buffer import RingBuffer
 
 
 class SoundEffectEngine(EffectEngine):
@@ -28,7 +29,7 @@ class SoundEffectEngine(EffectEngine):
             delimiter=",",
             quotechar='"',
             quoting=csv.QUOTE_MINIMAL)
-        self._currentBpm = 0
+        self._currentBpms = RingBuffer(config.AVG_WINDOW)
         self._heartbeat = config.HEARTBEAT_TIMEOUT
 
         if config.BPM_RANGE_LOW >= config.BPM_RANGE_HIGH:
@@ -56,12 +57,14 @@ class SoundEffectEngine(EffectEngine):
     def idle(self):
         print(self._name + " idling..")
         self.shutdown_audio()
+        self._currentBpms.reset()
         while not self._stop_event.is_set():
             try:
                 bpm = self._queue.get(timeout=2)
-                self._currentBpm = bpm if bpm > 0 else self._currentBpm
-                print("Received bpm from dispatcher: " + str(self._currentBpm))
-                self.choose_wav_file()
+                if bpm > 0:
+                    self._currentBpms.append(bpm)
+                print("Received bpm from dispatcher: " + str(bpm))
+                self.open_wav_file()
                 self._heartbeat = config.HEARTBEAT_TIMEOUT
                 break
             except queue.Empty:
@@ -71,30 +74,20 @@ class SoundEffectEngine(EffectEngine):
         try:
             bpm = self._queue.get_nowait()
             self._heartbeat = config.HEARTBEAT_TIMEOUT
-            bpm_old = self._currentBpm
-            self._currentBpm = bpm if bpm > 0 else self._currentBpm
-            print("Received bpm from dispatcher: " + str(self._currentBpm))
-            # save data history
-            if self._currentBpm != 0:
-                self._bpmHistory.append(self._currentBpm)
+            if bpm > 0:
+                self._currentBpms.append(bpm)
+                self._bpmHistory.append(bpm)
                 # write into csv
-
-                self._dataWriter.writerow([self._currentBpm])
+                self._dataWriter.writerow([bpm])
                 self._dataFile.flush()
-            if bpm_old != self._currentBpm:
-                return True
-            else:
-                return False
+            print("Received bpm from dispatcher: " + str(bpm))
+            # save data history
+
         except queue.Empty:
             self._heartbeat = self._heartbeat - 1
-            return False
 
-    def choose_wav_file(self):
-        limited_bpm = config.BPM_RANGE_LOW if self._currentBpm < config.BPM_RANGE_LOW else \
-            config.BPM_RANGE_HIGH if self._currentBpm > config.BPM_RANGE_HIGH else self._currentBpm
-        total_range = config.BPM_RANGE_HIGH - config.BPM_RANGE_LOW
-        index = math.floor((limited_bpm - config.BPM_RANGE_LOW)/math.ceil(total_range/len(self._wav_files)))
-        print(index)
+    def open_wav_file(self):
+        index = self.choose_wav_file()
         self._cur_wav_file = wave.open(self._wav_files[index], "rb")
         self._stream = self._player.open(
             format=self._player.get_format_from_width(
@@ -103,10 +96,25 @@ class SoundEffectEngine(EffectEngine):
             rate=self._cur_wav_file.getframerate(),
             output=True)
 
+    def choose_wav_file(self):
+        if self._currentBpms.get_len() is 0:
+            return 0
+
+        if config.SOUND_MODE is config.SoundMode.AVERAGE:
+            bpm = self._currentBpms.get_sum() / self._currentBpms.get_len()
+
+            limited_bpm = config.BPM_RANGE_LOW if bpm < config.BPM_RANGE_LOW else \
+                config.BPM_RANGE_HIGH if bpm > config.BPM_RANGE_HIGH else bpm
+            total_range = config.BPM_RANGE_HIGH - config.BPM_RANGE_LOW
+            index = math.floor((limited_bpm - config.BPM_RANGE_LOW) / math.ceil(total_range/len(self._wav_files)))
+
+        print(index)
+        return index
+
     def effect_loop(self):
 
         self.poll_bpm()
-        self.choose_wav_file()
+        self.open_wav_file()
 
         try:
             while True:
@@ -120,14 +128,12 @@ class SoundEffectEngine(EffectEngine):
                     self._stream.write(data)
                     data = self._cur_wav_file.readframes(self._chunk)
 
-                changed = self.poll_bpm()
+                self.poll_bpm()
                 if self._heartbeat is 0:
                     self.idle()
-                elif changed:
-                    self.shutdown_audio()
-                    self.choose_wav_file()
                 else:
-                    self._cur_wav_file.rewind()
+                    self.shutdown_audio()
+                    self.open_wav_file()
 
                 time.sleep(0.1)
         except KeyboardInterrupt:
