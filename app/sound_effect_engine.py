@@ -108,6 +108,12 @@ class SoundEffectEngine(EffectEngine):
             total_range = config.BPM_RANGE_HIGH - config.BPM_RANGE_LOW
             index = math.floor((limited_bpm - config.BPM_RANGE_LOW) / math.ceil(total_range/len(self._wav_files)))
 
+        elif config.SOUND_MODE is config.SoundMode.DIFFERENCE:
+            diff = max(self._currentBpms.get()) - min(self._currentBpms.get())
+            if diff > len(self._wav_files) - 1:
+                diff = len(self._wav_files) - 1
+            index = diff
+
         print(index)
         return index
 
