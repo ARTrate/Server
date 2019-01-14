@@ -1,2 +1,4 @@
+wheel
 python-osc
 argparse
+numpy
