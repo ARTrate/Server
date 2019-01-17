@@ -43,9 +43,13 @@ def postProcessRR(addr, x, y, z):
     """
     global started_RR_postprocessing
     global cached_ACC_X, cached_ACC_Y, cached_ACC_Z
-    cached_ACC_X.append(x)
-    cached_ACC_Y.append(y)
-    cached_ACC_Z.append(z)
+    x_modified = (x + 2048) * 16
+    y_modified = (y + 2048) * 16
+    z_modified = (z + 2048) * 16
+    cached_ACC_X.append(x_modified)
+    cached_ACC_Y.append(y_modified)
+    cached_ACC_Z.append(z_modified)
+    # print(x_modified, y_modified, z_modified)
     # if there is enough data, analyze like in Maximilian Kurscheidts` Main
     if len(cached_ACC_X) > 500:
         raw_X = numpy.array(cached_ACC_X)
