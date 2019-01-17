@@ -32,7 +32,7 @@ def dispatch_effect_engines(addr, args):
     started_effect_engines = True
 
 
-def postProcessRR(addr, args):
+def postProcessRR(addr, x, y, z):
     """
     Postprocess the raw acceleration data from the Sensor to extract the
     actual respiration rate. This done with the methods provided by Maximilian
@@ -43,12 +43,11 @@ def postProcessRR(addr, args):
     """
     global started_RR_postprocessing
     global cached_ACC_X, cached_ACC_Y, cached_ACC_Z
-    data_array = args.split(",")
-    cached_ACC_X.append(int(data_array[0]))
-    cached_ACC_Y.append(int(data_array[1]))
-    cached_ACC_Z.append(int(data_array[2]))
+    cached_ACC_X.append(x)
+    cached_ACC_Y.append(y)
+    cached_ACC_Z.append(z)
     # if there is enough data, analyze like in Maximilian Kurscheidts` Main
-    if len(cached_ACC_X) > 3000:
+    if len(cached_ACC_X) > 500:
         raw_X = numpy.array(cached_ACC_X)
         # clean cache
         cached_ACC_X = []
