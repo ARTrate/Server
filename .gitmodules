@@ -1,10 +1,6 @@
-[submodule "app/acc_sensor_rr-python"]
-	path = app/acc_sensor_rr
-	url = https://github.com/MadMax93/acc_sensor_rr-python.git
-[submodule "test/acc_senser_rr"]
-	path = test/acc_sensor_rr
-	url = https://github.com/MadMax93/acc_sensor_rr-python
 [submodule "app/acc_sensor_rr"]
+	path = app/acc_sensor_rr
 	url = https://github.com/ARTrate/acc_sensor_rr-python.git
 [submodule "test/acc_sensor_rr"]
+	path = test/acc_sensor_rr
 	url = https://github.com/ARTrate/acc_sensor_rr-python.git
