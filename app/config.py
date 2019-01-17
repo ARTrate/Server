@@ -12,3 +12,5 @@ SOUND_MODE = SoundMode.DIFFERENCE   # Mode of SoundEffectEngine
 AVG_WINDOW = 2                      # Nr of bpm values to be stored (for Difference mode, keep at least a window of 2!)
 BPM_RANGE_LOW = 50                  # BPM range (inclusive) to assign wav files to (everything lower/higher than given
 BPM_RANGE_HIGH = 99                 # range will be capped. Total range should be dividable by number of wav files.
+HISTORY_DIR = "../hist/"            # Directory where the hist files are put - if started with "/" it will take absolute
+                                    # path, otherwise relative path
