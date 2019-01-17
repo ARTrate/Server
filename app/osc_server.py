@@ -90,7 +90,7 @@ if __name__ == "__main__":
 
     dispatcher = dispatcher.Dispatcher()
     dispatcher.map("/bpm", dispatch_effect_engines)
-    dispatcher.map("/RR", postProcessRR)
+    dispatcher.map("/artrate/rr", postProcessRR)
 
     server = osc_server.ThreadingOSCUDPServer((args.ip, args.port), dispatcher)
     print("Serving on {}".format(server.server_address))
