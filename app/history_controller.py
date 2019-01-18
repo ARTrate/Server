@@ -54,14 +54,14 @@ class HistoryController(threading.Thread):
         if data.get_id() not in self._registered_ids[data.get_type()]:
             self._registered_ids[data.get_type()].append(data.get_id())
 
-        csvFile = open(self._file_dir + data.get_type().name + '_' + str(data.get_id()) + ".csv", "w")
+        csvFile = open(self._file_dir + data.get_type().name + '_' + str(data.get_id()) + ".csv", "a")
         writer = csv.writer(csvFile,
                             delimiter=",",
                             quotechar='"',
                             quoting=csv.QUOTE_MINIMAL)
 
         writer.writerow([data.get_data()])
-        writer.flush()
+        csvFile.flush()
         csvFile.close()
 
     def stop(self):

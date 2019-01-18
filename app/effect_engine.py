@@ -12,7 +12,6 @@ class EffectEngine(threading.Thread):
         self._heartbeat = config.HEARTBEAT_TIMEOUT
         self._name = ""
         self._bpmHistory = list()
-        self._stop_event = threading.Event()
 
     def set_bpm(self, bpm):
         self._currentBpm = bpm

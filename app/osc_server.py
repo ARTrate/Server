@@ -5,6 +5,8 @@ import sys
 import numpy
 from sound_effect_engine import SoundEffectEngine
 from acc_sensor_rr.Code.Signalprocessing import Signalprocessing
+from history_controller import HistoryController
+import history_data as hd
 
 LOW_CUT = 0.2
 HIGH_CUT = 0.45
@@ -19,16 +21,20 @@ cached_ACC_Z = []
 sp = Signalprocessing()
 
 effectEngines = [SoundEffectEngine(Queue())]
+historyController = HistoryController(Queue())
 
 
-def dispatch_effect_engines(addr, args):
+def dispatch_effect_engines(addr, ip, payload):
     global started_effect_engines
     global effectEngines
     print("+++++++ DISPATCH OSC DATA +++++++ ")
+
     for e in effectEngines:
         if not started_effect_engines:  # start threads when receiving data
             e.start()
-        e.get_queue().put(args)
+        e.get_queue().put(payload)
+
+    historyController.get_queue().put(hd.HistoryData(hd.HistoryDataType.BPM, ip, payload))
     started_effect_engines = True
 
 
@@ -99,11 +105,14 @@ if __name__ == "__main__":
     dispatcher.map("/bpm", dispatch_effect_engines)
     dispatcher.map("/artrate/rr", postProcessRR)
 
+    historyController.start()
+
     server = osc_server.ThreadingOSCUDPServer((args.ip, args.port), dispatcher)
     print("Serving on {}".format(server.server_address))
     try:
         server.serve_forever()
     except (KeyboardInterrupt, SystemExit):
+        historyController.stop()
         for engine in effectEngines:
             engine.stop()
-            sys.exit()
+        sys.exit()
