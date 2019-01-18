@@ -32,14 +32,17 @@ def dispatch_effect_engines(addr, args):
     started_effect_engines = True
 
 
-def postProcessRR(addr, x, y, z):
+def postProcessRR(addr, ip, x, y, z):
     """
     Postprocess the raw acceleration data from the Sensor to extract the
     actual respiration rate. This done with the methods provided by Maximilian
     Kurscheidt
 
     :param addr: the OSC addr string
-    :param args: the OSC payload, our value string, eg 29185,38544,28561
+    :param ip: the ip of the device
+    :param x: x accelleration values
+    :param y: y accelleration values
+    :param z: z accelleration values
     """
     global started_RR_postprocessing
     global cached_ACC_X, cached_ACC_Y, cached_ACC_Z
@@ -49,7 +52,7 @@ def postProcessRR(addr, x, y, z):
     cached_ACC_X.append(x_modified)
     cached_ACC_Y.append(y_modified)
     cached_ACC_Z.append(z_modified)
-    # print(x_modified, y_modified, z_modified)
+    print(x_modified, y_modified, z_modified)
     # if there is enough data, analyze like in Maximilian Kurscheidts` Main
     if len(cached_ACC_X) > 500:
         raw_X = numpy.array(cached_ACC_X)
