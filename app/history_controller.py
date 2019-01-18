@@ -60,7 +60,7 @@ class HistoryController(threading.Thread):
                             quotechar='"',
                             quoting=csv.QUOTE_MINIMAL)
 
-        writer.writerow([data.get_data()])
+        writer.writerow([str(datetime.datetime.now().strftime("%H%M%S")), data.get_data()])
         csvFile.flush()
         csvFile.close()
 
