@@ -20,12 +20,13 @@ if __name__ == "__main__":
   if args.range:
       for i in range(50, 126):
           bpm = i
-          client.send_message("/bpm", bpm)
+
+          client.send_message("/bpm", ["1.2.3.4", bpm])
           print("client sent " + str(bpm) + " bpm")
           time.sleep(3)
   else:
       while True:
         bpm = randint(50, 120)
-        client.send_message("/bpm", bpm)
+        client.send_message("/bpm", ["1.2.3.4", bpm])
         print("client sent " + str(bpm) + " bpm")
         time.sleep(4)
