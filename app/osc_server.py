@@ -3,6 +3,7 @@ from pythonosc import dispatcher, osc_server
 from queue import Queue
 import sys
 import numpy
+from scipy.signal import find_peaks
 from sound_effect_engine import SoundEffectEngine
 from acc_sensor_rr.Code.Signalprocessing import Signalprocessing
 from history_controller import HistoryController
@@ -12,7 +13,7 @@ LOW_CUT_RR = 0.2
 HIGH_CUT_RR = 0.45
 
 LOW_CUT_BPM = 0.7
-HIGH_CUT_BPM = 5.0
+HIGH_CUT_BPM = 3.0
 
 SAMPLE_RATE = 50
 
@@ -22,6 +23,7 @@ started_BPM_postprocessong = False
 cached_ACC_X = []
 cached_ACC_Y = []
 cached_ACC_Z = []
+cached_raw_bpm = []
 
 sp = Signalprocessing()
 
@@ -69,11 +71,11 @@ def postProcessRR(addr, ip, x, y, z):
     if len(cached_ACC_X) > 500:
         raw_X = numpy.array(cached_ACC_X)
         # clean cache
-        cached_ACC_X = []
+        cached_ACC_X.clear()
         raw_Y = numpy.array(cached_ACC_Y)
-        cached_ACC_Y = []
+        cached_ACC_Y.clear()
         raw_Z = numpy.array(cached_ACC_Z)
-        cached_ACC_Z = []
+        cached_ACC_Z.clear()
         # filter data
         filtered_X = sp.butter_bandpass_filter(raw_X, LOW_CUT_RR, HIGH_CUT_RR,
                                                SAMPLE_RATE)
@@ -101,7 +103,19 @@ def postProcessRR(addr, ip, x, y, z):
 
 
 def postProcessBPM(addr, ip, raw_data: int):
-    print(raw_data)
+    cached_raw_bpm.append(raw_data)
+    if len(cached_raw_bpm) > 3000:
+        raw_bpm = numpy.array(cached_raw_bpm)
+        cached_raw_bpm.clear()
+        filtered_bpm = sp.butter_bandpass_filter(raw_bpm, LOW_CUT_BPM,
+                                                 HIGH_CUT_BPM, SAMPLE_RATE)
+        print("----------------------- filtered data ------------------------")
+        print(filtered_bpm)
+        peaks, _ = find_peaks(filtered_bpm)
+        print(peaks)
+        print(len(peaks))
+        print("BPM:")
+        print(len(peaks))
 
 
 if __name__ == "__main__":
@@ -114,10 +128,10 @@ if __name__ == "__main__":
 
     dispatcher = dispatcher.Dispatcher()
     dispatcher.map("/bpm", dispatch_effect_engines)
-    dispatcher.map("/artrate/rr", postProcessRR)
+    # dispatcher.map("/artrate/rr", postProcessRR)
     dispatcher.map("/artrate/bpm", postProcessBPM)
 
-    historyController.start()
+    # historyController.start()
 
     server = osc_server.ThreadingOSCUDPServer((args.ip, args.port), dispatcher)
     print("Serving on {}".format(server.server_address))
