@@ -8,6 +8,7 @@ from sound_effect_engine import SoundEffectEngine
 from acc_sensor_rr.Code.Signalprocessing import Signalprocessing
 from history_controller import HistoryController
 import history_data as hd
+from collections import deque
 
 LOW_CUT_RR = 0.2
 HIGH_CUT_RR = 0.45
@@ -23,7 +24,7 @@ started_BPM_postprocessong = False
 cached_ACC_X = []
 cached_ACC_Y = []
 cached_ACC_Z = []
-cached_raw_bpm = []
+cached_raw_bpm = deque(maxlen=3000)
 
 sp = Signalprocessing()
 
@@ -104,9 +105,8 @@ def postProcessRR(addr, ip, x, y, z):
 
 def postProcessBPM(addr, ip, raw_data: int):
     cached_raw_bpm.append(raw_data)
-    if len(cached_raw_bpm) > 3000:
+    if len(cached_raw_bpm) % 50 == 0:
         raw_bpm = numpy.array(cached_raw_bpm)
-        cached_raw_bpm.clear()
         filtered_bpm = sp.butter_bandpass_filter(raw_bpm, LOW_CUT_BPM,
                                                  HIGH_CUT_BPM, SAMPLE_RATE)
         print("----------------------- filtered data ------------------------")
@@ -115,7 +115,7 @@ def postProcessBPM(addr, ip, raw_data: int):
         print(peaks)
         print(len(peaks))
         print("BPM:")
-        print(len(peaks))
+        print(len(peaks) * (3000 / len(cached_raw_bpm)))
 
 
 if __name__ == "__main__":
