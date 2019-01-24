@@ -8,12 +8,17 @@ from acc_sensor_rr.Code.Signalprocessing import Signalprocessing
 from history_controller import HistoryController
 import history_data as hd
 
-LOW_CUT = 0.2
-HIGH_CUT = 0.45
+LOW_CUT_RR = 0.2
+HIGH_CUT_RR = 0.45
+
+LOW_CUT_BPM = 0.7
+HIGH_CUT_BPM = 5.0
+
 SAMPLE_RATE = 50
 
 started_effect_engines = False
 started_RR_postprocessing = False
+started_BPM_postprocessong = False
 cached_ACC_X = []
 cached_ACC_Y = []
 cached_ACC_Z = []
@@ -34,7 +39,8 @@ def dispatch_effect_engines(addr, ip, payload):
             e.start()
         e.get_queue().put(payload)
 
-    historyController.get_queue().put(hd.HistoryData(hd.HistoryDataType.BPM, ip, payload))
+    historyController.get_queue().put(hd.HistoryData(hd.HistoryDataType.BPM,
+                                                     ip, payload))
     started_effect_engines = True
 
 
@@ -69,11 +75,11 @@ def postProcessRR(addr, ip, x, y, z):
         raw_Z = numpy.array(cached_ACC_Z)
         cached_ACC_Z = []
         # filter data
-        filtered_X = sp.butter_bandpass_filter(raw_X, LOW_CUT, HIGH_CUT,
+        filtered_X = sp.butter_bandpass_filter(raw_X, LOW_CUT_RR, HIGH_CUT_RR,
                                                SAMPLE_RATE)
-        filtered_Y = sp.butter_bandpass_filter(raw_Y, LOW_CUT, HIGH_CUT,
+        filtered_Y = sp.butter_bandpass_filter(raw_Y, LOW_CUT_RR, HIGH_CUT_RR,
                                                SAMPLE_RATE)
-        filtered_Z = sp.butter_bandpass_filter(raw_Z, LOW_CUT, HIGH_CUT,
+        filtered_Z = sp.butter_bandpass_filter(raw_Z, LOW_CUT_RR, HIGH_CUT_RR,
                                                SAMPLE_RATE)
         # FTT
         yf_X, frq_X = sp.fast_fourier_transformation(filtered_X, SAMPLE_RATE)
@@ -94,9 +100,14 @@ def postProcessRR(addr, ip, x, y, z):
         print("Repsiration rate is: " + str(rr))
 
 
+def postProcessBPM(addr, ip, raw_data: int):
+    print(raw_data)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ip", default="localhost", help="The ip to listen on")
+    parser.add_argument("--ip", default="localhost",
+                        help="The ip to listen on")
     parser.add_argument("--port", type=int, default=5005,
                         help="The port to listen on")
     args = parser.parse_args()
@@ -104,6 +115,7 @@ if __name__ == "__main__":
     dispatcher = dispatcher.Dispatcher()
     dispatcher.map("/bpm", dispatch_effect_engines)
     dispatcher.map("/artrate/rr", postProcessRR)
+    dispatcher.map("/artrate/bpm", postProcessBPM)
 
     historyController.start()
 
