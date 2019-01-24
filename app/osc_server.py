@@ -21,10 +21,12 @@ SAMPLE_RATE = 50
 started_effect_engines = False
 started_RR_postprocessing = False
 started_BPM_postprocessong = False
-cached_ACC_X = []
-cached_ACC_Y = []
-cached_ACC_Z = []
+cached_ACC_X = deque(maxlen=3000)
+cached_ACC_Y = deque(maxlen=3000)
+cached_ACC_Z = deque(maxlen=3000)
 cached_raw_bpm = deque(maxlen=3000)
+bpm_counter = 0
+rr_counter = 0
 
 sp = Signalprocessing()
 
@@ -59,24 +61,23 @@ def postProcessRR(addr, ip, x, y, z):
     :param y: y accelleration values
     :param z: z accelleration values
     """
-    global started_RR_postprocessing
+    global started_RR_postprocessing, rr_counter
     global cached_ACC_X, cached_ACC_Y, cached_ACC_Z
+    rr_counter += 1
     x_modified = (x + 2048) * 16
     y_modified = (y + 2048) * 16
     z_modified = (z + 2048) * 16
     cached_ACC_X.append(x_modified)
     cached_ACC_Y.append(y_modified)
     cached_ACC_Z.append(z_modified)
-    print(x_modified, y_modified, z_modified)
+    # print(x_modified, y_modified, z_modified)
     # if there is enough data, analyze like in Maximilian Kurscheidts` Main
-    if len(cached_ACC_X) > 500:
+    if rr_counter >= 50:
+        rr_counter = 0
         raw_X = numpy.array(cached_ACC_X)
-        # clean cache
-        cached_ACC_X.clear()
         raw_Y = numpy.array(cached_ACC_Y)
-        cached_ACC_Y.clear()
         raw_Z = numpy.array(cached_ACC_Z)
-        cached_ACC_Z.clear()
+
         # filter data
         filtered_X = sp.butter_bandpass_filter(raw_X, LOW_CUT_RR, HIGH_CUT_RR,
                                                SAMPLE_RATE)
@@ -100,22 +101,20 @@ def postProcessRR(addr, ip, x, y, z):
         max_ps = sp.positive_power_spectrum_for_peak_detection(power_max)
         peak_tupel = sp.find_peak_and_frequency(max_ps, frq_max)
         rr = sp.calculate_rr_from_power_spectrum(peak_tupel)
-        print("Repsiration rate is: " + str(rr))
+        print("Respiration rate is: " + str(rr))
 
 
 def postProcessBPM(addr, ip, raw_data: int):
+    global bpm_counter, cached_raw_bpm
+    bpm_counter += 1
     cached_raw_bpm.append(raw_data)
-    if len(cached_raw_bpm) % 50 == 0:
+    if bpm_counter >= 50:
+        bpm_counter = 0
         raw_bpm = numpy.array(cached_raw_bpm)
         filtered_bpm = sp.butter_bandpass_filter(raw_bpm, LOW_CUT_BPM,
                                                  HIGH_CUT_BPM, SAMPLE_RATE)
-        print("----------------------- filtered data ------------------------")
-        print(filtered_bpm)
         peaks, _ = find_peaks(filtered_bpm)
-        print(peaks)
-        print(len(peaks))
-        print("BPM:")
-        print(len(peaks) * (3000 / len(cached_raw_bpm)))
+        print("BPM: " + str(len(peaks) * (3000 / len(cached_raw_bpm))))
 
 
 if __name__ == "__main__":
@@ -128,7 +127,7 @@ if __name__ == "__main__":
 
     dispatcher = dispatcher.Dispatcher()
     dispatcher.map("/bpm", dispatch_effect_engines)
-    # dispatcher.map("/artrate/rr", postProcessRR)
+    dispatcher.map("/artrate/rr", postProcessRR)
     dispatcher.map("/artrate/bpm", postProcessBPM)
 
     # historyController.start()
