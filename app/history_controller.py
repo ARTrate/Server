@@ -30,7 +30,7 @@ class HistoryController(threading.Thread):
 
         while not self._stop_event.is_set():
             try:
-                data = self._queue.get_nowait()
+                data = self._queue.get()
                 self.log_data(data)
 
             except queue.Empty:
@@ -54,15 +54,15 @@ class HistoryController(threading.Thread):
         if data.get_id() not in self._registered_ids[data.get_type()]:
             self._registered_ids[data.get_type()].append(data.get_id())
 
-        csvFile = open(self._file_dir + data.get_type().name + '_' + str(data.get_id()) + ".csv", "a")
-        writer = csv.writer(csvFile,
+        csv_file = open(self._file_dir + data.get_type().name + '_' + str(data.get_id()) + ".csv", "a")
+        writer = csv.writer(csv_file,
                             delimiter=",",
                             quotechar='"',
                             quoting=csv.QUOTE_MINIMAL)
 
         writer.writerow([str(datetime.datetime.now().strftime("%H%M%S")), data.get_data()])
-        csvFile.flush()
-        csvFile.close()
+        csv_file.flush()
+        csv_file.close()
 
     def stop(self):
         self._stop_event.set()

@@ -130,7 +130,7 @@ if __name__ == "__main__":
     dispatcher.map("/artrate/rr", postProcessRR)
     dispatcher.map("/artrate/bpm", postProcessBPM)
 
-    # historyController.start()
+    historyController.start()
 
     server = osc_server.ThreadingOSCUDPServer((args.ip, args.port), dispatcher)
     print("Serving on {}".format(server.server_address))
