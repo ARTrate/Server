@@ -25,5 +25,3 @@ class EffectEngine(threading.Thread):
     def get_name(self):
         return self._name
 
-    def stop(self):
-        self._stop_event.set()
