@@ -1,10 +1,11 @@
 import threading
 import config
 import csv
-import history_data
+import history_data as hd
 import os
 import datetime
 import queue
+from plotter import *
 
 
 class HistoryController(threading.Thread):
@@ -14,8 +15,9 @@ class HistoryController(threading.Thread):
         self._stop_event = threading.Event()
         self._queue = queue
         self._registered_ids = {}
+        self._plotter = []
 
-        for t in history_data.HistoryDataType:
+        for t in hd.HistoryDataType:
             self._registered_ids[t] = []
 
         if not config.HISTORY_DIR.endswith('/'):
@@ -28,6 +30,11 @@ class HistoryController(threading.Thread):
         if not self.create_directory():
             return
 
+        if config.PLOT_BPM:
+            self._plotter.append(Plotter(hd.HistoryDataType.BPM, self._file_dir))
+        if config.PLOT_RR:
+            self._plotter.append(Plotter(hd.HistoryDataType.RR, self._file_dir))
+
         while not self._stop_event.is_set():
             try:
                 data = self._queue.get(timeout=1)
@@ -35,6 +42,9 @@ class HistoryController(threading.Thread):
 
             except queue.Empty:
                 pass
+
+        for plotter in self._plotter:
+            plotter.plot()
 
     def create_directory(self):
 

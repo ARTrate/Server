@@ -14,3 +14,5 @@ BPM_RANGE_LOW = 50                  # BPM range (inclusive) to assign wav files 
 BPM_RANGE_HIGH = 99                 # range will be capped. Total range should be dividable by number of wav files.
 HISTORY_DIR = "../hist/"            # Directory where the hist files are put - if started with "/" it will take absolute
                                     # path, otherwise relative path
+PLOT_BPM = True
+PLOT_RR = False
