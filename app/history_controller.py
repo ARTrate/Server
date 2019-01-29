@@ -30,24 +30,32 @@ class HistoryController(threading.Thread):
 
         while not self._stop_event.is_set():
             try:
-                data = self._queue.get()
+                data = self._queue.get(timeout=1)
                 self.log_data(data)
 
             except queue.Empty:
                 pass
 
     def create_directory(self):
-        if os.path.isdir(self._file_dir):
-            subdirs = sum(os.path.isdir(os.path.join(self._file_dir, i)) for i in os.listdir(self._file_dir))
-            self._file_dir = self._file_dir + str(subdirs + 1) + '/'
-        else:
-            self._file_dir = self._file_dir + "1" + '/'
-        try:
-            os.makedirs(self._file_dir)
-            return True
 
+        try:
+            if not os.path.isdir(self._file_dir):
+                os.makedirs(self._file_dir)
         except OSError:
             print("Could not create directory at %s - history controller is shutting down..." % self._file_dir)
+            return False
+
+        subdir = sum(os.path.isdir(os.path.join(self._file_dir, i)) for i in os.listdir(self._file_dir)) + 1
+        # avoid overwriting csvs in case some subfolders were deleted
+        while os.path.isdir(self._file_dir + str(subdir)):
+            subdir = subdir + 1
+        self._file_dir = self._file_dir + str(subdir) + '/'
+
+        try:
+            os.mkdir(self._file_dir)
+            return True
+        except OSError:
+            print("Could not subdirectory at %s - history controller is shutting down..." % self._file_dir)
             return False
 
     def log_data(self, data):
@@ -60,7 +68,7 @@ class HistoryController(threading.Thread):
                             quotechar='"',
                             quoting=csv.QUOTE_MINIMAL)
 
-        writer.writerow([str(datetime.datetime.now().strftime("%H%M%S")), data.get_data()])
+        writer.writerow([data.get_data()])
         csv_file.flush()
         csv_file.close()
 
