@@ -1,6 +1,7 @@
 import os
 from numpy import genfromtxt
 import matplotlib.pyplot as plt;
+import matplotlib
 import history_data as hd
 import config
 
@@ -18,6 +19,7 @@ class Plotter:
             self.plot_bpm()
 
     def plot_bpm(self):
+        matplotlib.rcParams['toolbar'] = 'None'
         fig = plt.figure()
         fig.patch.set_facecolor('black')
         plt.axis('off')
@@ -26,12 +28,14 @@ class Plotter:
         for f in self.collect_files():
             try:
                 my_data = genfromtxt(f, delimiter=',')
-                my_data[:, 0] = my_data[:, 0] + i * self._GRAPH_OFFSET
-                plt.plot(my_data[:, 0], color="white", alpha=1 - (self._ALPHA_FACTOR * i))
+                my_data = my_data + i * self._GRAPH_OFFSET
+                plt.plot(my_data, color="white", alpha=1 - (self._ALPHA_FACTOR * i))
                 i = i + 1
             except IndexError:
                 pass
 
+        figManager = plt.get_current_fig_manager()
+        figManager.full_screen_toggle()
         plt.show()
 
     def collect_files(self):
