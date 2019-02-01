@@ -1,5 +1,5 @@
 import argparse
-from pythonosc import dispatcher, osc_server
+from pythonosc import dispatcher, osc_server, udp_client
 from queue import Queue
 import sys
 import numpy
@@ -38,7 +38,15 @@ def dispatch_effect_engines(addr, ip, payload):
     global started_effect_engines
     global effectEngines
     print("+++++++ DISPATCH OSC DATA +++++++ ")
-
+    # calculate range between 0 and 1
+    if payload < 40:
+        ranged_value = 0.0
+    elif payload > 120:
+        ranged_value = 1.0
+    else:
+        ranged_value = (float(payload) - 40.0) / 80.0
+    # send ranged value to ableton
+    client.send_message("/artrate/bpm", ranged_value)
     for e in effectEngines:
         if not started_effect_engines:  # start threads when receiving data
             e.start()
@@ -102,6 +110,15 @@ def postProcessRR(addr, ip, x, y, z):
         peak_tupel = sp.find_peak_and_frequency(max_ps, frq_max)
         rr = sp.calculate_rr_from_power_spectrum(peak_tupel)
         print("Respiration rate is: " + str(rr))
+        # calculate range between 0 and 1
+        if rr < 13:
+            ranged_value = 0.0
+        elif rr > 19:
+            ranged_value = 1.0
+        else:
+            ranged_value = (float(rr) - 13.0) / 6.0
+        # send ranged value to ableton
+        client.send_message("/artrate/rr", ranged_value)
 
 
 def postProcessBPM(addr, ip, raw_data: int):
@@ -115,6 +132,15 @@ def postProcessBPM(addr, ip, raw_data: int):
                                                  HIGH_CUT_BPM, SAMPLE_RATE)
         peaks, _ = find_peaks(filtered_bpm)
         print("BPM: " + str(len(peaks) * (3000 / len(cached_raw_bpm))))
+        # calculate range between 0 and 1
+        if len(peaks) < 40:
+            ranged_value = 0.0
+        elif len(peaks) > 120:
+            ranged_value = 1.0
+        else:
+            ranged_value = (float(len(peaks)) - 40.0) / 80.0
+        # send ranged value to ableton
+        client.send_message("/artrate/custom_bpm", ranged_value)
 
 
 if __name__ == "__main__":
@@ -124,6 +150,8 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=5005,
                         help="The port to listen on")
     args = parser.parse_args()
+
+    client = udp_client.SimpleUDPClient("192.168.178.45", 8000)
 
     dispatcher = dispatcher.Dispatcher()
     dispatcher.map("/bpm", dispatch_effect_engines)
