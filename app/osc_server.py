@@ -8,6 +8,7 @@ from acc_sensor_rr.Code.Signalprocessing import Signalprocessing
 from history_controller import HistoryController
 import history_data as hd
 from collections import deque
+import sys
 
 LOW_CUT_RR = 0.2
 HIGH_CUT_RR = 0.45
