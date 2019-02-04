@@ -16,3 +16,4 @@ HISTORY_DIR = "../hist/"            # Directory where the hist files are put - i
                                     # path, otherwise relative path
 PLOT_BPM = True
 PLOT_RR = False
+PLOT_INTERVAL = 3000                # Plot update interval in ms

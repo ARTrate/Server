@@ -36,7 +36,7 @@ class SoundEffectEngine(EffectEngine):
             raise ValueError("BPM Ranges are not configured correctly in config")
 
     def read_wav_files(self):
-        self._wav_files = [join(self._wav_dir, f) for f in listdir(self._wav_dir) if isfile(join(self._wav_dir, f))]
+        self._wav_files = [join(self._wav_dir, f) for f in listdir(self._wav_dir) if isfile(join(self._wav_dir, f)) and ".wav" in f]
         self._wav_files = natsorted(self._wav_files, key=lambda y: y.lower())
         if len(self._wav_files) < 1:
             raise FileNotFoundError("No wav files found in given directory.")
@@ -63,7 +63,6 @@ class SoundEffectEngine(EffectEngine):
                 bpm = self._queue.get(timeout=2)
                 if bpm > 0:
                     self._currentBpms.append(bpm)
-                print("Received bpm from dispatcher: " + str(bpm))
                 self.open_wav_file()
                 self._heartbeat = config.HEARTBEAT_TIMEOUT
                 break
@@ -80,7 +79,6 @@ class SoundEffectEngine(EffectEngine):
                 # write into csv
                 self._dataWriter.writerow([bpm])
                 self._dataFile.flush()
-            print("Received bpm from dispatcher: " + str(bpm))
             # save data history
 
         except queue.Empty:

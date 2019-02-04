@@ -15,7 +15,7 @@ class HistoryController(threading.Thread):
         self._stop_event = threading.Event()
         self._queue = queue
         self._registered_ids = {}
-        self._plotter = []
+        self._plotter = None
 
         for t in hd.HistoryDataType:
             self._registered_ids[t] = []
@@ -31,20 +31,19 @@ class HistoryController(threading.Thread):
             return
 
         if config.PLOT_BPM:
-            self._plotter.append(Plotter(hd.HistoryDataType.BPM, self._file_dir))
-        if config.PLOT_RR:
-            self._plotter.append(Plotter(hd.HistoryDataType.RR, self._file_dir))
+            self._plotter = Plotter(hd.HistoryDataType.BPM, self._file_dir)
+        elif config.PLOT_RR:
+            self._plotter = Plotter(hd.HistoryDataType.RR, self._file_dir)
+
+        if self._plotter:
+            self._plotter.start()
 
         while not self._stop_event.is_set():
             try:
                 data = self._queue.get(timeout=1)
                 self.log_data(data)
-
             except queue.Empty:
                 pass
-
-        for plotter in self._plotter:
-            plotter.plot()
 
     def create_directory(self):
 

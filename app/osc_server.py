@@ -1,7 +1,6 @@
 import argparse
 from pythonosc import dispatcher, osc_server
 from queue import Queue
-import sys
 import numpy
 from scipy.signal import find_peaks
 from sound_effect_engine import SoundEffectEngine
@@ -44,6 +43,8 @@ def dispatch_effect_engines(addr, ip, payload):
             e.start()
         e.get_queue().put(payload)
 
+    if not started_effect_engines:
+        historyController.start()
     historyController.get_queue().put(hd.HistoryData(hd.HistoryDataType.BPM,
                                                      ip, payload))
     started_effect_engines = True
@@ -129,8 +130,6 @@ if __name__ == "__main__":
     dispatcher.map("/bpm", dispatch_effect_engines)
     dispatcher.map("/artrate/rr", postProcessRR)
     dispatcher.map("/artrate/bpm", postProcessBPM)
-
-    historyController.start()
 
     server = osc_server.ThreadingOSCUDPServer((args.ip, args.port), dispatcher)
     print("Serving on {}".format(server.server_address))
