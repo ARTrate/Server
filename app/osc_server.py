@@ -1,5 +1,5 @@
 import argparse
-from pythonosc import dispatcher, osc_server
+from pythonosc import dispatcher, osc_server, udp_client
 from queue import Queue
 import numpy
 from scipy.signal import find_peaks
@@ -26,6 +26,10 @@ cached_ACC_Z = deque(maxlen=3000)
 cached_raw_bpm = deque(maxlen=3000)
 bpm_counter = 0
 rr_counter = 0
+bpm_low_limit = 0
+bpm_high_limit = 0
+rr_low_limit = 0
+rr_high_limit = 0
 
 sp = Signalprocessing()
 
@@ -36,8 +40,17 @@ historyController = HistoryController(Queue())
 def dispatch_effect_engines(addr, ip, payload):
     global started_effect_engines
     global effectEngines
+    global bpm_low_limit, bpm_high_limit
     print("+++++++ DISPATCH OSC DATA +++++++ ")
-
+    # calculate range between 0 and 1
+    if payload < bpm_low_limit:
+        ranged_value = 0.0
+    elif payload > bpm_high_limit:
+        ranged_value = 1.0
+    else:
+        ranged_value = (float(payload) - bpm_low_limit) / (bpm_high_limit - bpm_low_limit)
+    # send ranged value to ableton
+    client.send_message("/artrate/bpm", ranged_value)
     for e in effectEngines:
         if not started_effect_engines:  # start threads when receiving data
             e.start()
@@ -64,6 +77,7 @@ def postProcessRR(addr, ip, x, y, z):
     """
     global started_RR_postprocessing, rr_counter
     global cached_ACC_X, cached_ACC_Y, cached_ACC_Z
+    global rr_low_limit, rr_high_limit
     rr_counter += 1
     x_modified = (x + 2048) * 16
     y_modified = (y + 2048) * 16
@@ -102,11 +116,20 @@ def postProcessRR(addr, ip, x, y, z):
         max_ps = sp.positive_power_spectrum_for_peak_detection(power_max)
         peak_tupel = sp.find_peak_and_frequency(max_ps, frq_max)
         rr = sp.calculate_rr_from_power_spectrum(peak_tupel)
-        print("Respiration rate is: " + str(rr))
+        # print("Respiration rate is: " + str(rr))
+        # calculate range between 0 and 1
+        if rr < rr_low_limit:
+            ranged_value = 0.0
+        elif rr > rr_high_limit:
+            ranged_value = 1.0
+        else:
+            ranged_value = (float(rr) - rr_low_limit) / (rr_high_limit - rr_low_limit)
+        # send ranged value to ableton
+        client.send_message("/artrate/rr", ranged_value)
 
 
 def postProcessBPM(addr, ip, raw_data: int):
-    global bpm_counter, cached_raw_bpm
+    global bpm_counter, cached_raw_bpm, bpm_low_limit, bpm_high_limit
     bpm_counter += 1
     cached_raw_bpm.append(raw_data)
     if bpm_counter >= 50:
@@ -116,6 +139,15 @@ def postProcessBPM(addr, ip, raw_data: int):
                                                  HIGH_CUT_BPM, SAMPLE_RATE)
         peaks, _ = find_peaks(filtered_bpm)
         print("BPM: " + str(len(peaks) * (3000 / len(cached_raw_bpm))))
+        # calculate range between 0 and 1
+        if len(peaks) < bpm_low_limit:
+            ranged_value = 0.0
+        elif len(peaks) > bpm_high_limit:
+            ranged_value = 1.0
+        else:
+            ranged_value = (float(len(peaks)) - bpm_low_limit) / (bpm_high_limit - bpm_low_limit)
+        # send ranged value to ableton
+        client.send_message("/artrate/custom_bpm", ranged_value)
 
 
 if __name__ == "__main__":
@@ -124,7 +156,26 @@ if __name__ == "__main__":
                         help="The ip to listen on")
     parser.add_argument("--port", type=int, default=5005,
                         help="The port to listen on")
+    parser.add_argument("--ableton_ip", default="localhost",
+                        help="The ip of an ableton instance")
+    parser.add_argument("--ableton_port", default=7099,
+                        help="The port of an ableton instance")
+    parser.add_argument("--bpm_low_limit", default=40,
+                        help="the low limit to calculate bpm ranges")
+    parser.add_argument("--bpm_high_limit", default=120,
+                        help="the high limit to calculate bpm ranges")
+    parser.add_argument("--rr_low_limit", default=10,
+                        help="the low limit to calculate rr ranges")
+    parser.add_argument("--rr_high_limit", default=20,
+                        help="the high limit to calculate rr ranges")
     args = parser.parse_args()
+
+    bpm_low_limit = args.bpm_low_limit
+    bpm_high_limit = args.bpm_high_limit
+    rr_low_limit = args.rr_low_limit
+    rr_high_limit = args.rr_high_limit
+
+    client = udp_client.SimpleUDPClient(args.ableton_ip, args.ableton_port)
 
     dispatcher = dispatcher.Dispatcher()
     dispatcher.map("/bpm", dispatch_effect_engines)
