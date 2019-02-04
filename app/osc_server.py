@@ -79,6 +79,7 @@ def postProcessRR(addr, ip, x, y, z):
     global started_RR_postprocessing, rr_counter
     global cached_ACC_X, cached_ACC_Y, cached_ACC_Z
     global rr_low_limit, rr_high_limit
+    global started_effect_engines
     rr_counter += 1
     x_modified = (x + 2048) * 16
     y_modified = (y + 2048) * 16
@@ -127,10 +128,16 @@ def postProcessRR(addr, ip, x, y, z):
             ranged_value = (float(rr) - rr_low_limit) / (rr_high_limit - rr_low_limit)
         # send ranged value to ableton
         client.send_message("/artrate/rr", ranged_value)
+        if not started_effect_engines:
+            historyController.start()
+        historyController.get_queue().put(hd.HistoryData(hd.HistoryDataType.RR,
+                                                         ip, ranged_value))
+        started_effect_engines = True
 
 
 def postProcessBPM(addr, ip, raw_data: int):
     global bpm_counter, cached_raw_bpm, bpm_low_limit, bpm_high_limit
+    global started_effect_engines
     bpm_counter += 1
     cached_raw_bpm.append(raw_data)
     if bpm_counter >= 50:
@@ -149,6 +156,11 @@ def postProcessBPM(addr, ip, raw_data: int):
             ranged_value = (float(len(peaks)) - bpm_low_limit) / (bpm_high_limit - bpm_low_limit)
         # send ranged value to ableton
         client.send_message("/artrate/custom_bpm", ranged_value)
+        if not started_effect_engines:
+            historyController.start()
+        historyController.get_queue().put(hd.HistoryData(hd.HistoryDataType.BPM,
+                                                         ip, ranged_value))
+        started_effect_engines = True
 
 
 if __name__ == "__main__":

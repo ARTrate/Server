@@ -151,3 +151,4 @@ pip-selfcheck.json
 app/history.csv
 hist/
 statistics/
+.idea/
