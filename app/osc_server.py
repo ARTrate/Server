@@ -17,18 +17,19 @@ LOW_CUT_BPM = 0.7
 HIGH_CUT_BPM = 3.0
 
 SAMPLE_RATE = 50
+SAMPLE_RATE_RR = 12.5
 
 started_effect_engines = False
 started_RR_postprocessing = False
 started_BPM_postprocessong = False
-cached_ACC_X = set()
-cached_ACC_Y = set()
-cached_ACC_Z = set()
+cached_ACC_X = dict()
+cached_ACC_Y = dict()
+cached_ACC_Z = dict()
 # cached_raw_bpm = deque(maxlen=3000)
-cached_raw_bpm = set()
+cached_raw_bpm = dict()
 # bpm_counter = 0
-bpm_counter = set()
-rr_counter = set()
+bpm_counter = dict()
+rr_counter = dict()
 bpm_low_limit = 0
 bpm_high_limit = 0
 rr_low_limit = 0
@@ -109,15 +110,15 @@ def postProcessRR(addr, uid, x, y, z):
 
         # filter data
         filtered_X = sp.butter_bandpass_filter(raw_X, LOW_CUT_RR, HIGH_CUT_RR,
-                                               SAMPLE_RATE)
+                                               SAMPLE_RATE_RR)
         filtered_Y = sp.butter_bandpass_filter(raw_Y, LOW_CUT_RR, HIGH_CUT_RR,
-                                               SAMPLE_RATE)
+                                               SAMPLE_RATE_RR)
         filtered_Z = sp.butter_bandpass_filter(raw_Z, LOW_CUT_RR, HIGH_CUT_RR,
-                                               SAMPLE_RATE)
+                                               SAMPLE_RATE_RR)
         # FTT
-        yf_X, frq_X = sp.fast_fourier_transformation(filtered_X, SAMPLE_RATE)
-        yf_Y, frq_Y = sp.fast_fourier_transformation(filtered_Y, SAMPLE_RATE)
-        yf_Z, frq_Z = sp.fast_fourier_transformation(filtered_Z, SAMPLE_RATE)
+        yf_X, frq_X = sp.fast_fourier_transformation(filtered_X, SAMPLE_RATE_RR)
+        yf_Y, frq_Y = sp.fast_fourier_transformation(filtered_Y, SAMPLE_RATE_RR)
+        yf_Z, frq_Z = sp.fast_fourier_transformation(filtered_Z, SAMPLE_RATE_RR)
         # spectral power
         power_X = sp.power_of_the_spectrum(yf_X)
         power_Y = sp.power_of_the_spectrum(yf_Y)
@@ -126,7 +127,7 @@ def postProcessRR(addr, uid, x, y, z):
         # maximum power and frequency
         power_max, frq_max = sp.maximum_power_of_xyz_spectrum(power_X, power_Y,
                                                               power_Z,
-                                                              SAMPLE_RATE)
+                                                              SAMPLE_RATE_RR)
         max_ps = sp.positive_power_spectrum_for_peak_detection(power_max)
         peak_tupel = sp.find_peak_and_frequency(max_ps, frq_max)
         rr = sp.calculate_rr_from_power_spectrum(peak_tupel)
@@ -157,7 +158,7 @@ def postProcessBPM(addr, uid, raw_data: int):
     global started_effect_engines
     if uid not in bpm_counter:
         bpm_counter[uid] = 0
-        cached_raw_bpm[uid] = deque(maxlen=3000)
+        cached_raw_bpm[uid] = deque(maxlen=1500)
 
     bpm_counter[uid] += 1
     cached_raw_bpm[uid].append(raw_data)
@@ -168,20 +169,21 @@ def postProcessBPM(addr, uid, raw_data: int):
         filtered_bpm = sp.butter_bandpass_filter(raw_bpm, LOW_CUT_BPM,
                                                  HIGH_CUT_BPM, SAMPLE_RATE)
         peaks, _ = find_peaks(filtered_bpm)
-        print("BPM: " + str(len(peaks) * (3000 / len(cached_raw_bpm))))
+
+        bpm = len(peaks) * (3000 / len(cached_raw_bpm[uid]))
         # calculate range between 0 and 1
-        if len(peaks) < bpm_low_limit:
+        if bpm < bpm_low_limit:
             ranged_value = 0.0
-        elif len(peaks) > bpm_high_limit:
+        elif bpm > bpm_high_limit:
             ranged_value = 1.0
         else:
-            ranged_value = (float(len(peaks)) - bpm_low_limit) / (bpm_high_limit - bpm_low_limit)
+            ranged_value = (bpm - bpm_low_limit) / (bpm_high_limit - bpm_low_limit)
         # send ranged value to ableton
         osc_addr_raw = "/artrate/bpm/raw/" + str(uid)
         osc_addr_ranged = "/artrate/bpm/ranged/" + str(uid)
-        client.send_message(osc_addr_raw, len(peaks))
+        client.send_message(osc_addr_raw, bpm)
         client.send_message(osc_addr_ranged, ranged_value)
-        print("real bpm value of id " + str(uid) + ": " + str(len(peaks)))
+        print("real bpm value of id " + str(uid) + ": " + str(bpm))
         print("ranged bpm value of id " + str(uid) + ": " + str(ranged_value))
         if not started_effect_engines:
             historyController.start()
