@@ -10,11 +10,15 @@ class Plotter(threading.Thread):
 
     def __init__(self, type, path):
         threading.Thread.__init__(self)
+        self._stop_event = threading.Event()
         self._type = type
         self._path = path
         self._GRAPH_OFFSET = 40.
         self._ALPHA_FACTOR = 0.1
         self._data = {}
+        self._fig = None
+        self._ax = None
+        self._ani = None
 
     def run(self):
         matplotlib.rcParams['toolbar'] = 'None'
@@ -23,13 +27,21 @@ class Plotter(threading.Thread):
         self._fig.patch.set_facecolor('black')
         plt.axis('off')
         self._fig.tight_layout()
-        figManager = plt.get_current_fig_manager()
-        figManager.full_screen_toggle()
+        fig_manager = plt.get_current_fig_manager()
+        fig_manager.full_screen_toggle()
 
-        ani = animation.FuncAnimation(self._fig, self.plot, interval=config.PLOT_INTERVAL)
+        self._ani = animation.FuncAnimation(self._fig, self.plot, interval=config.PLOT_INTERVAL)
         plt.show()
 
-    def plot(self,i):
+    def stop(self):
+        self._stop_event.set()
+
+    def plot(self, i):
+        if self._stop_event.is_set():
+            self._ani.event_source.stop()
+            plt.close("all")
+            return
+
         i = 0
         for f in self.collect_files():
             try:

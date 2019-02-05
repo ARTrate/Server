@@ -83,6 +83,7 @@ class HistoryController(threading.Thread):
 
     def stop(self):
         self._stop_event.set()
+        self._plotter.stop()
 
     def get_queue(self):
         return self._queue
