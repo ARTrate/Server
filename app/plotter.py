@@ -5,6 +5,8 @@ import matplotlib
 import matplotlib.animation as animation
 import threading
 import config
+from collections import deque
+
 
 class Plotter(threading.Thread):
 
@@ -42,12 +44,16 @@ class Plotter(threading.Thread):
             plt.close("all")
             return
 
+        del self._ax.lines[:]  # prevent overdrawing the lines to preserve varying alpha
+
         i = 0
-        for f in self.collect_files():
+        for csv in self.collect_files():
             try:
-                my_data = genfromtxt(f, delimiter=',')
-                my_data = my_data + i * self._GRAPH_OFFSET
-                self._ax.plot(my_data, color="white", alpha=1 - (self._ALPHA_FACTOR * i))
+                with open(csv, 'r') as f:
+                    lines = deque(f, config.PLOT_WINDOW)
+                    my_data = genfromtxt(lines, delimiter=',')
+                    my_data = my_data + i * self._GRAPH_OFFSET
+                    self._ax.plot(my_data, color="white", alpha=1 - (self._ALPHA_FACTOR * i))
                 i = i + 1
             except IndexError:
                 pass
