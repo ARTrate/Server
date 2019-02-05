@@ -143,6 +143,8 @@ def postProcessRR(addr, uid, x, y, z):
         osc_addr_ranged = "/artrate/rr/ranged/" + str(uid)
         client.send_message(osc_addr_ranged, ranged_value)
         client.send_message(osc_addr_raw, rr)
+        print("real RR value of id " + str(uid) + ": " + str(rr))
+        print("ranged RR value of id " + str(uid) + ": " + str(ranged_value))
         if not started_effect_engines:
             historyController.start()
         historyController.get_queue().put(hd.HistoryData(hd.HistoryDataType.RR,
@@ -179,6 +181,8 @@ def postProcessBPM(addr, uid, raw_data: int):
         osc_addr_ranged = "/artrate/bpm/ranged/" + str(uid)
         client.send_message(osc_addr_raw, len(peaks))
         client.send_message(osc_addr_ranged, ranged_value)
+        print("real bpm value of id " + str(uid) + ": " + str(len(peaks)))
+        print("ranged bpm value of id " + str(uid) + ": " + str(ranged_value))
         if not started_effect_engines:
             historyController.start()
         historyController.get_queue().put(hd.HistoryData(hd.HistoryDataType.BPM,
