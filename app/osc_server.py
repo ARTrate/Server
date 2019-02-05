@@ -40,7 +40,7 @@ effectEngines = [SoundEffectEngine(Queue())]
 historyController = HistoryController(Queue())
 
 
-def dispatch_effect_engines(addr, ip, payload):
+def dispatch_effect_engines(addr, uid, payload):
     global started_effect_engines
     global effectEngines
     global bpm_low_limit, bpm_high_limit
@@ -53,7 +53,10 @@ def dispatch_effect_engines(addr, ip, payload):
     else:
         ranged_value = (float(payload) - bpm_low_limit) / (bpm_high_limit - bpm_low_limit)
     # send ranged value to ableton
-    client.send_message("/artrate/bpm", ranged_value)
+    osc_addr_raw = "/artrate/bpm/raw/" + str(uid)
+    osc_addr_ranged = "/artrate/bpm/ranged/" + str(uid)
+    client.send_message(osc_addr_raw, payload)
+    client.send_message(osc_addr_ranged, ranged_value)
     for e in effectEngines:
         if not started_effect_engines:  # start threads when receiving data
             e.start()
@@ -62,7 +65,7 @@ def dispatch_effect_engines(addr, ip, payload):
     if not started_effect_engines:
         historyController.start()
     historyController.get_queue().put(hd.HistoryData(hd.HistoryDataType.BPM,
-                                                     ip, payload))
+                                                     uid, payload))
     started_effect_engines = True
 
 
@@ -136,7 +139,10 @@ def postProcessRR(addr, uid, x, y, z):
         else:
             ranged_value = (float(rr) - rr_low_limit) / (rr_high_limit - rr_low_limit)
         # send ranged value to ableton
-        client.send_message("/artrate/rr", ranged_value)
+        osc_addr_raw = "/artrate/rr/raw/" + str(uid)
+        osc_addr_ranged = "/artrate/rr/ranged/" + str(uid)
+        client.send_message(osc_addr_ranged, ranged_value)
+        client.send_message(osc_addr_raw, rr)
         if not started_effect_engines:
             historyController.start()
         historyController.get_queue().put(hd.HistoryData(hd.HistoryDataType.RR,
@@ -169,7 +175,10 @@ def postProcessBPM(addr, uid, raw_data: int):
         else:
             ranged_value = (float(len(peaks)) - bpm_low_limit) / (bpm_high_limit - bpm_low_limit)
         # send ranged value to ableton
-        client.send_message("/artrate/custom_bpm", ranged_value)
+        osc_addr_raw = "/artrate/bpm/raw/" + str(uid)
+        osc_addr_ranged = "/artrate/bpm/ranged/" + str(uid)
+        client.send_message(osc_addr_raw, len(peaks))
+        client.send_message(osc_addr_ranged, ranged_value)
         if not started_effect_engines:
             historyController.start()
         historyController.get_queue().put(hd.HistoryData(hd.HistoryDataType.BPM,
