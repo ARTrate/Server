@@ -21,12 +21,14 @@ SAMPLE_RATE = 50
 started_effect_engines = False
 started_RR_postprocessing = False
 started_BPM_postprocessong = False
-cached_ACC_X = deque(maxlen=3000)
-cached_ACC_Y = deque(maxlen=3000)
-cached_ACC_Z = deque(maxlen=3000)
-cached_raw_bpm = deque(maxlen=3000)
-bpm_counter = 0
-rr_counter = 0
+cached_ACC_X = set()
+cached_ACC_Y = set()
+cached_ACC_Z = set()
+# cached_raw_bpm = deque(maxlen=3000)
+cached_raw_bpm = set()
+# bpm_counter = 0
+bpm_counter = set()
+rr_counter = set()
 bpm_low_limit = 0
 bpm_high_limit = 0
 rr_low_limit = 0
@@ -64,7 +66,7 @@ def dispatch_effect_engines(addr, ip, payload):
     started_effect_engines = True
 
 
-def postProcessRR(addr, ip, x, y, z):
+def postProcessRR(addr, uid, x, y, z):
     """
     Postprocess the raw acceleration data from the Sensor to extract the
     actual respiration rate. This done with the methods provided by Maximilian
@@ -80,20 +82,27 @@ def postProcessRR(addr, ip, x, y, z):
     global cached_ACC_X, cached_ACC_Y, cached_ACC_Z
     global rr_low_limit, rr_high_limit
     global started_effect_engines
-    rr_counter += 1
     x_modified = (x + 2048) * 16
     y_modified = (y + 2048) * 16
     z_modified = (z + 2048) * 16
-    cached_ACC_X.append(x_modified)
-    cached_ACC_Y.append(y_modified)
-    cached_ACC_Z.append(z_modified)
+    if uid not in rr_counter:
+        rr_counter[uid] = 0
+        cached_ACC_X[uid] = deque(maxlen=3000)
+        cached_ACC_Y[uid] = deque(maxlen=3000)
+        cached_ACC_Z[uid] = deque(maxlen=3000)
+
+    rr_counter[uid] += 1
+    cached_ACC_X[uid].append(x_modified)
+    cached_ACC_Y[uid].append(y_modified)
+    cached_ACC_Z[uid].append(z_modified)
+
     # print(x_modified, y_modified, z_modified)
     # if there is enough data, analyze like in Maximilian Kurscheidts` Main
-    if rr_counter >= 50:
-        rr_counter = 0
-        raw_X = numpy.array(cached_ACC_X)
-        raw_Y = numpy.array(cached_ACC_Y)
-        raw_Z = numpy.array(cached_ACC_Z)
+    if rr_counter[uid] >= 50:
+        rr_counter[uid] = 0
+        raw_X = numpy.array(cached_ACC_X[uid])
+        raw_Y = numpy.array(cached_ACC_Y[uid])
+        raw_Z = numpy.array(cached_ACC_Z[uid])
 
         # filter data
         filtered_X = sp.butter_bandpass_filter(raw_X, LOW_CUT_RR, HIGH_CUT_RR,
@@ -131,18 +140,23 @@ def postProcessRR(addr, ip, x, y, z):
         if not started_effect_engines:
             historyController.start()
         historyController.get_queue().put(hd.HistoryData(hd.HistoryDataType.RR,
-                                                         ip, ranged_value))
+                                                         uid, ranged_value))
         started_effect_engines = True
 
 
-def postProcessBPM(addr, ip, raw_data: int):
+def postProcessBPM(addr, uid, raw_data: int):
     global bpm_counter, cached_raw_bpm, bpm_low_limit, bpm_high_limit
     global started_effect_engines
-    bpm_counter += 1
-    cached_raw_bpm.append(raw_data)
-    if bpm_counter >= 50:
-        bpm_counter = 0
-        raw_bpm = numpy.array(cached_raw_bpm)
+    if uid not in bpm_counter:
+        bpm_counter[uid] = 0
+        cached_raw_bpm[uid] = deque(maxlen=3000)
+
+    bpm_counter[uid] += 1
+    cached_raw_bpm[uid].append(raw_data)
+
+    if bpm_counter[uid] >= 50:
+        bpm_counter[uid] = 0
+        raw_bpm = numpy.array(cached_raw_bpm[uid])
         filtered_bpm = sp.butter_bandpass_filter(raw_bpm, LOW_CUT_BPM,
                                                  HIGH_CUT_BPM, SAMPLE_RATE)
         peaks, _ = find_peaks(filtered_bpm)
@@ -159,7 +173,7 @@ def postProcessBPM(addr, ip, raw_data: int):
         if not started_effect_engines:
             historyController.start()
         historyController.get_queue().put(hd.HistoryData(hd.HistoryDataType.BPM,
-                                                         ip, ranged_value))
+                                                         uid, ranged_value))
         started_effect_engines = True
 
 
