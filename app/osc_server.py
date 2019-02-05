@@ -146,7 +146,7 @@ def postProcessRR(addr, uid, x, y, z):
         if not started_effect_engines:
             historyController.start()
         historyController.get_queue().put(hd.HistoryData(hd.HistoryDataType.RR,
-                                                         uid, ranged_value))
+                                                         uid, rr))
         started_effect_engines = True
 
 
@@ -182,7 +182,7 @@ def postProcessBPM(addr, uid, raw_data: int):
         if not started_effect_engines:
             historyController.start()
         historyController.get_queue().put(hd.HistoryData(hd.HistoryDataType.BPM,
-                                                         uid, ranged_value))
+                                                         uid, len(peaks)))
         started_effect_engines = True
 
 
