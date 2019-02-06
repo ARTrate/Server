@@ -6,6 +6,12 @@ import matplotlib.animation as animation
 import threading
 import config
 from collections import deque
+import history_data as hd
+import math
+
+RR_COLORS = ["aquamarine","turquoise", "darkturquoise","c","teal","darkslategrey"]
+RR_MIN = 10
+RR_MAX = 22
 
 
 class Plotter(threading.Thread):
@@ -26,7 +32,7 @@ class Plotter(threading.Thread):
         matplotlib.rcParams['toolbar'] = 'None'
         self._fig = plt.figure()
         self._ax = self._fig.add_subplot(1,1,1)
-        self._fig.patch.set_facecolor('black')
+        self._fig.patch.set_facecolor(RR_COLORS[0])
         plt.axis('off')
         self._fig.tight_layout()
         fig_manager = plt.get_current_fig_manager()
@@ -47,7 +53,7 @@ class Plotter(threading.Thread):
         del self._ax.lines[:]  # prevent overdrawing the lines to preserve varying alpha
 
         i = 0
-        for csv in self.collect_files():
+        for csv in self.collect_files(self._type.name):
             try:
                 with open(csv, 'r') as f:
                     lines = deque(f, config.PLOT_WINDOW)
@@ -58,7 +64,21 @@ class Plotter(threading.Thread):
             except IndexError:
                 pass
 
-    def collect_files(self):
-        # collect all csv file paths of the respective data type
-        return [os.path.join(self._path, f) for f in os.listdir(self._path) if ".csv" in f and self._type.name in f]
+        for csv in self.collect_files(hd.HistoryDataType.RR.name):
+            try:
+                with open(csv, 'r') as f:
+                    lines = deque(f, 1)
+                    my_data = genfromtxt(lines, delimiter=',')
+                    total_range = RR_MAX - RR_MIN
+                    if my_data > RR_MAX:
+                        my_data = RR_MAX
+                    elif my_data < RR_MIN:
+                        my_data = RR_MIN
+                    index = math.floor((my_data - RR_MIN) / math.ceil(total_range / len(RR_COLORS)))
+                    self._fig.patch.set_facecolor(RR_COLORS[index])
+            except IndexError:
+                pass
 
+    def collect_files(self, type):
+        # collect all csv file paths of the respective data type
+        return [os.path.join(self._path, f) for f in os.listdir(self._path) if ".csv" in f and type in f]
