@@ -84,6 +84,11 @@ def dispatch_commercial(addr, uid, payload):
     global bpm_low_limit, bpm_high_limit
     # calculate range between 0 and 1
     ranged_value = calcRangedValue(payload, bpm_high_limit, bpm_low_limit)
+    midi_value = calcMIDIValue(ranged_value)
+    midi_min = calcMIDIValue(0.0)
+    midi_max = calcMIDIValue(1.0)
+    print("min: " + str(midi_min) + " max: " + str(midi_max))
+    print(midi_value)
     if config.ENGINE_MODE is config.EngineMode.INTERNAL:
         dispatch_internal(hd.HistoryDataType.BPM, uid, payload)
 
@@ -152,7 +157,7 @@ def postProcessRR(addr, uid, x, y, z):
         max_ps = sp.positive_power_spectrum_for_peak_detection(power_max)
         peak_tupel = sp.find_peak_and_frequency(max_ps, frq_max)
         rr = sp.calculate_rr_from_power_spectrum(peak_tupel)
-        # print("Respiration rate is: " + str(rr))
+        print("Respiration rate is: " + str(rr))
         # calculate range between 0 and 1
         ranged_value = calcRangedValue(rr, rr_high_limit, rr_low_limit)
         # send ranged value to ableton
@@ -171,6 +176,11 @@ def calcRangedValue(payload, high_lim, low_lim):
         return 1.0
     else:
         return (float(payload) - low_lim) / (high_lim - low_lim)
+
+
+def calcMIDIValue(ranged_value):
+    output = int(0 + ((127 - 0) / (1.0 - 0.0)) * (ranged_value - 0.0))
+    return output
 
 
 def postProcessBPM(addr, uid, raw_data: int):
@@ -192,6 +202,7 @@ def postProcessBPM(addr, uid, raw_data: int):
         bpm = len(peaks) * (3000 / len(cached_raw_bpm[uid]))
         # calculate range between 0 and 1
         ranged_value = calcRangedValue(bpm, bpm_high_limit, bpm_low_limit)
+        midi_value = calcMIDIValue(ranged_value)
         # send ranged value to ableton
         if config.ENGINE_MODE is config.EngineMode.INTERNAL:
             dispatch_internal(hd.HistoryDataType.BPM, uid, bpm)
@@ -232,7 +243,7 @@ if __name__ == "__main__":
 
     dispatcher = dispatcher.Dispatcher()
     dispatcher.map("/bpm", dispatch_commercial)
-    dispatcher.map("/artrate/rr", postProcessRR)
+    # dispatcher.map("/artrate/rr", postProcessRR)
     dispatcher.map("/artrate/bpm", postProcessBPM)
 
     server = osc_server.ThreadingOSCUDPServer((args.ip, args.port), dispatcher)
