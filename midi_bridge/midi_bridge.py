@@ -1,13 +1,16 @@
 import sys
 from pythonosc import dispatcher, osc_server
 import argparse
-from mido import Message
+import mido
+
+mido_port = 0
 
 
 def bridge_to_midi(addr, value):
-    msg = Message('note_on', value)
+    global mido_port
+    mido_port.send(mido.Message('control_change', channel=0, value=value, control=110))
+
     print("got data...")
-    print(msg)
 
 
 if __name__ == "__main__":
@@ -17,6 +20,8 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=7099,
                         help="The port to listen on")
     args = parser.parse_args()
+
+    mido_port = mido.open_output()
 
     dispatcher = dispatcher.Dispatcher()
     dispatcher.map("/midi", bridge_to_midi)
