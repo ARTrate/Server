@@ -1,17 +1,20 @@
 import sys
 from pythonosc import dispatcher, osc_server
 import argparse
+from mido import Message
 
 
 def bridge_to_midi(addr, value):
-    pass
+    msg = Message('note_on', value)
+    print("got data...")
+    print(msg)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--ip", default="localhost",
                         help="The ip to listen on")
-    parser.add_argument("--port", type=int, default=5005,
+    parser.add_argument("--port", type=int, default=7099,
                         help="The port to listen on")
     args = parser.parse_args()
 

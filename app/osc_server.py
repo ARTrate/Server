@@ -93,6 +93,7 @@ def dispatch_commercial(addr, uid, payload):
         dispatch_internal(hd.HistoryDataType.BPM, uid, payload)
 
     elif config.ENGINE_MODE is config.EngineMode.EXTERNAL:
+        client.send_message("/midi", midi_value)
         dispatch_external(hd.HistoryDataType.BPM, uid, payload, ranged_value)
 
 
