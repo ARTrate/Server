@@ -67,6 +67,9 @@ def dispatch_external(type, uid, raw, ranged):
     if type is hd.HistoryDataType.BPM:
         osc_addr_raw = "/artrate/bpm/raw/" + str(uid)
         osc_addr_ranged = "/artrate/bpm/ranged/" + str(uid)
+    elif type is hd.HistoryDataType.RR:
+        osc_addr_raw = "/artrate/rr/raw/" + str(uid)
+        osc_addr_ranged = "/artrate/rr/ranged/" + str(uid)
     client.send_message(osc_addr_raw, raw)
     client.send_message(osc_addr_ranged, ranged)
 
