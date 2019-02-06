@@ -9,6 +9,7 @@ from history_controller import HistoryController
 import history_data as hd
 from collections import deque
 import sys
+import config
 
 LOW_CUT_RR = 0.2
 HIGH_CUT_RR = 0.45
@@ -37,37 +38,54 @@ rr_high_limit = 0
 
 sp = Signalprocessing()
 
-effectEngines = [SoundEffectEngine(Queue())]
+effectEngines = []
+if config.ENGINE_MODE is config.EngineMode.INTERNAL:
+    effectEngines.append(SoundEffectEngine(Queue()))
 historyController = HistoryController(Queue())
 
 
-def dispatch_effect_engines(addr, uid, payload):
+def dispatch_internal(type, uid, payload):
     global started_effect_engines
     global effectEngines
-    global bpm_low_limit, bpm_high_limit
-    print("+++++++ DISPATCH OSC DATA +++++++ ")
-    # calculate range between 0 and 1
-    if payload < bpm_low_limit:
-        ranged_value = 0.0
-    elif payload > bpm_high_limit:
-        ranged_value = 1.0
-    else:
-        ranged_value = (float(payload) - bpm_low_limit) / (bpm_high_limit - bpm_low_limit)
-    # send ranged value to ableton
-    osc_addr_raw = "/artrate/bpm/raw/" + str(uid)
-    osc_addr_ranged = "/artrate/bpm/ranged/" + str(uid)
-    client.send_message(osc_addr_raw, payload)
-    client.send_message(osc_addr_ranged, ranged_value)
-    for e in effectEngines:
-        if not started_effect_engines:  # start threads when receiving data
-            e.start()
-        e.get_queue().put(payload)
+
+    if type is hd.HistoryDataType.BPM:
+        for e in effectEngines:
+            if not started_effect_engines:  # start threads when receiving data
+                e.start()
+            e.get_queue().put(payload)
 
     if not started_effect_engines:
         historyController.start()
-    historyController.get_queue().put(hd.HistoryData(hd.HistoryDataType.BPM,
-                                                     uid, payload))
+    historyController.get_queue().put(hd.HistoryData(type, uid, payload))
     started_effect_engines = True
+
+
+def dispatch_external(type, uid, raw, ranged):
+    global started_effect_engines
+    osc_addr_ranged = ""
+    osc_addr_raw = ""
+    if type is hd.HistoryDataType.BPM:
+        osc_addr_raw = "/artrate/bpm/raw/" + str(uid)
+        osc_addr_ranged = "/artrate/bpm/ranged/" + str(uid)
+    client.send_message(osc_addr_raw, raw)
+    client.send_message(osc_addr_ranged, ranged)
+
+    if not started_effect_engines:
+        historyController.start()
+    historyController.get_queue().put(hd.HistoryData(type, uid, raw))
+    started_effect_engines = True
+
+
+def dispatch_commercial(addr, uid, payload):
+
+    global bpm_low_limit, bpm_high_limit
+    # calculate range between 0 and 1
+    ranged_value = calcRangedValue(payload, bpm_high_limit, bpm_low_limit)
+    if config.ENGINE_MODE is config.EngineMode.INTERNAL:
+        dispatch_internal(hd.HistoryDataType.BPM, uid, payload)
+
+    elif config.ENGINE_MODE is config.EngineMode.EXTERNAL:
+        dispatch_external(hd.HistoryDataType.BPM, uid, payload, ranged_value)
 
 
 def postProcessRR(addr, uid, x, y, z):
@@ -133,29 +151,27 @@ def postProcessRR(addr, uid, x, y, z):
         rr = sp.calculate_rr_from_power_spectrum(peak_tupel)
         # print("Respiration rate is: " + str(rr))
         # calculate range between 0 and 1
-        if rr < rr_low_limit:
-            ranged_value = 0.0
-        elif rr > rr_high_limit:
-            ranged_value = 1.0
-        else:
-            ranged_value = (float(rr) - rr_low_limit) / (rr_high_limit - rr_low_limit)
+        ranged_value = calcRangedValue(rr, rr_high_limit, rr_low_limit)
         # send ranged value to ableton
-        osc_addr_raw = "/artrate/rr/raw/" + str(uid)
-        osc_addr_ranged = "/artrate/rr/ranged/" + str(uid)
-        client.send_message(osc_addr_ranged, ranged_value)
-        client.send_message(osc_addr_raw, rr)
+        if config.ENGINE_MODE is config.EngineMode.INTERNAL:
+            dispatch_internal(hd.HistoryDataType.RR, uid, rr)
+        elif config.ENGINE_MODE is config.EngineMode.EXTERNAL:
+            dispatch_external(hd.HistoryDataType.RR, uid, rr, ranged_value)
         print("real RR value of id " + str(uid) + ": " + str(rr))
         print("ranged RR value of id " + str(uid) + ": " + str(ranged_value))
-        if not started_effect_engines:
-            historyController.start()
-        historyController.get_queue().put(hd.HistoryData(hd.HistoryDataType.RR,
-                                                         uid, rr))
-        started_effect_engines = True
+
+
+def calcRangedValue(payload, high_lim, low_lim):
+    if payload < low_lim:
+        return 0.0
+    elif payload > high_lim:
+        return 1.0
+    else:
+        return (float(payload) - low_lim) / (high_lim - low_lim)
 
 
 def postProcessBPM(addr, uid, raw_data: int):
     global bpm_counter, cached_raw_bpm, bpm_low_limit, bpm_high_limit
-    global started_effect_engines
     if uid not in bpm_counter:
         bpm_counter[uid] = 0
         cached_raw_bpm[uid] = deque(maxlen=1500)
@@ -172,24 +188,15 @@ def postProcessBPM(addr, uid, raw_data: int):
 
         bpm = len(peaks) * (3000 / len(cached_raw_bpm[uid]))
         # calculate range between 0 and 1
-        if bpm < bpm_low_limit:
-            ranged_value = 0.0
-        elif bpm > bpm_high_limit:
-            ranged_value = 1.0
-        else:
-            ranged_value = (bpm - bpm_low_limit) / (bpm_high_limit - bpm_low_limit)
+        ranged_value = calcRangedValue(bpm, bpm_high_limit, bpm_low_limit)
         # send ranged value to ableton
-        osc_addr_raw = "/artrate/bpm/raw/" + str(uid)
-        osc_addr_ranged = "/artrate/bpm/ranged/" + str(uid)
-        client.send_message(osc_addr_raw, bpm)
-        client.send_message(osc_addr_ranged, ranged_value)
+        if config.ENGINE_MODE is config.EngineMode.INTERNAL:
+            dispatch_internal(hd.HistoryDataType.BPM, uid, bpm)
+        elif config.ENGINE_MODE is config.EngineMode.EXTERNAL:
+            dispatch_external(hd.HistoryDataType.BPM, uid, bpm, ranged_value)
+
         print("real bpm value of id " + str(uid) + ": " + str(bpm))
         print("ranged bpm value of id " + str(uid) + ": " + str(ranged_value))
-        if not started_effect_engines:
-            historyController.start()
-        historyController.get_queue().put(hd.HistoryData(hd.HistoryDataType.BPM,
-                                                         uid, len(peaks)))
-        started_effect_engines = True
 
 
 if __name__ == "__main__":
@@ -217,10 +224,11 @@ if __name__ == "__main__":
     rr_low_limit = args.rr_low_limit
     rr_high_limit = args.rr_high_limit
 
-    client = udp_client.SimpleUDPClient(args.ableton_ip, args.ableton_port)
+    if config.ENGINE_MODE is config.EngineMode.EXTERNAL:
+        client = udp_client.SimpleUDPClient(args.ableton_ip, args.ableton_port)
 
     dispatcher = dispatcher.Dispatcher()
-    dispatcher.map("/bpm", dispatch_effect_engines)
+    dispatcher.map("/bpm", dispatch_commercial)
     dispatcher.map("/artrate/rr", postProcessRR)
     dispatcher.map("/artrate/bpm", postProcessBPM)
 
